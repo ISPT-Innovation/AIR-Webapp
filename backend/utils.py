@@ -61,7 +61,7 @@ def fetchUserGroups(userToken, nextLink=None):
 def generateFilterString(userToken):
     # Get list of groups user is a member of
     userGroups = fetchUserGroups(userToken)
-
+    logging.info(f"USER GROUPS - {userGroups}")
     # Construct filter string
     if not userGroups:
         logging.debug("No user groups found")
