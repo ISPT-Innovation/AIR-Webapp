@@ -332,7 +332,7 @@ def get_configured_data_source():
                 "parameters": {
                     "endpoint": f"https://{AZURE_SEARCH_SERVICE}.search.windows.net",
                     "authentication": authentication,
-                    "indexName": AZURE_SEARCH_INDEX,
+                    "indexName": "air-ir",
                     "fieldsMapping": {
                         "contentFields": parse_multi_columns(AZURE_SEARCH_CONTENT_COLUMNS) if AZURE_SEARCH_CONTENT_COLUMNS else [],
                         "titleField": AZURE_SEARCH_TITLE_COLUMN if AZURE_SEARCH_TITLE_COLUMN else None,
