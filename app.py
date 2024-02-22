@@ -54,6 +54,7 @@ async def assets(path):
 
 load_dotenv()
 
+
 # Debug settings
 DEBUG = os.environ.get("DEBUG", "false")
 if DEBUG.lower() == "true":
@@ -292,6 +293,17 @@ def init_cosmosdb_client():
         
     return cosmos_conversation_client
 
+def get_allowed_index_based_on_user_group(user_groups):
+    group_permissions_str = os.getenv('GROUP_PERMISSIONS', '{}')
+    group_permissions = json.loads(group_permissions_str)
+    allowed_indexes_for_this_user = []
+    for group in user_groups:
+        group_id = group.get('id')
+        if group_id in group_permissions:
+            allowed_indexes_for_this_user.append(group_permissions[group_id])
+    if len(allowed_indexes_for_this_user)> 0:
+        return allowed_indexes_for_this_user[0]
+    return AZURE_SEARCH_INDEX # This is the default
 
 def get_configured_data_source():
     data_source = {}
@@ -300,6 +312,8 @@ def get_configured_data_source():
         userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
         userGroups = fetchUserGroups(userToken)
         logging.exception(f"USER GROUPS:{userGroups}")
+        search_index = get_allowed_index_based_on_user_group(userGroups)
+        logging.exception(f"USER GROUPS:{search_index}")
     except:
         logging.exception("Exception in extracting user groups")
 
