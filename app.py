@@ -300,19 +300,21 @@ def get_allowed_index_based_on_user_group(user_groups):
     for group in user_groups:
         group_id = group.get('id')
         if group_id in group_permissions:
-            allowed_indexes_for_this_user.append(group_permissions[group_id])
-    if len(allowed_indexes_for_this_user)> 0:
-        return allowed_indexes_for_this_user[0]
-    return AZURE_SEARCH_INDEX # This is the default
+            group_permission = group_permissions[group_id]
+            index = group_permission.get('index', AZURE_SEARCH_INDEX)
+            semanticSearchConfig = group_permission.get('semanticSearchConfig', AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG)
+            return index, semanticSearchConfig
+    return AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
+
 
 def get_configured_data_source():
     data_source = {}
-
+    search_index, semantic_search_config = AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG # default
     try:
         userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
         userGroups = fetchUserGroups(userToken)
         logging.exception(f"USER GROUPS:{userGroups}")
-        search_index = get_allowed_index_based_on_user_group(userGroups)
+        search_index, semantic_search_config = get_allowed_index_based_on_user_group(userGroups)
         logging.exception(f"USER GROUPS:{search_index}")
     except:
         logging.exception("Exception in extracting user groups")
@@ -354,7 +356,7 @@ def get_configured_data_source():
                 "parameters": {
                     "endpoint": f"https://{AZURE_SEARCH_SERVICE}.search.windows.net",
                     "authentication": authentication,
-                    "indexName": "air-ir",
+                    "indexName": search_index,
                     "fieldsMapping": {
                         "contentFields": parse_multi_columns(AZURE_SEARCH_CONTENT_COLUMNS) if AZURE_SEARCH_CONTENT_COLUMNS else [],
                         "titleField": AZURE_SEARCH_TITLE_COLUMN if AZURE_SEARCH_TITLE_COLUMN else None,
@@ -365,7 +367,7 @@ def get_configured_data_source():
                     "inScope": True if AZURE_SEARCH_ENABLE_IN_DOMAIN.lower() == "true" else False,
                     "topNDocuments": int(AZURE_SEARCH_TOP_K) if AZURE_SEARCH_TOP_K else int(SEARCH_TOP_K),
                     "queryType": query_type,
-                    "semanticConfiguration": "air-ir-semantic-configuration",
+                    "semanticConfiguration": semantic_search_config,
                     "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE,
                     "filter": filter,
                     "strictness": int(AZURE_SEARCH_STRICTNESS) if AZURE_SEARCH_STRICTNESS else int(SEARCH_STRICTNESS)
