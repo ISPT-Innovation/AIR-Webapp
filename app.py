@@ -547,7 +547,7 @@ async def send_chat_request(request):
         logging.exception("Exception in send_chat_request")
         raise e
 
-    return "Testing changes ->" + response
+    return response
 
 async def complete_chat_request(request_body):
     response = await send_chat_request(request_body)
