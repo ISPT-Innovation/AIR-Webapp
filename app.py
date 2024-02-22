@@ -296,6 +296,7 @@ def init_cosmosdb_client():
 def get_allowed_index_based_on_user_group(user_groups):
     group_permissions_str = os.getenv('GROUP_PERMISSIONS', '{}')
     group_permissions = json.loads(group_permissions_str)
+    logging.exception(f"GROUP PERMISSIONS:{group_permissions}")
     allowed_indexes_for_this_user = []
     for group in user_groups:
         group_id = group.get('id')
@@ -315,7 +316,7 @@ def get_configured_data_source():
         userGroups = fetchUserGroups(userToken)
         logging.exception(f"USER GROUPS:{userGroups}")
         search_index, semantic_search_config = get_allowed_index_based_on_user_group(userGroups)
-        logging.exception(f"USER GROUPS:{search_index}")
+        logging.exception(f"USER GROUPS:{search_index} - {AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG}")
     except:
         logging.exception("Exception in extracting user groups")
 
