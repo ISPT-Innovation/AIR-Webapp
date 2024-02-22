@@ -295,6 +295,14 @@ def init_cosmosdb_client():
 
 def get_configured_data_source():
     data_source = {}
+    
+    try:
+        userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
+        userGroups = fetchUserGroups(userToken)
+        logging.info(f"USER GROUPS:{userGroups}")
+    except:
+        logging.exception("Exception in extracting user groups")
+        
     query_type = "simple"
     if DATASOURCE_TYPE == "AzureCognitiveSearch":
         # Set query type
@@ -538,12 +546,7 @@ def prepare_model_args(request_body):
 
 async def send_chat_request(request):
     model_args = prepare_model_args(request)
-    try:
-        userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
-        userGroups = fetchUserGroups(userToken)
-        logging.info(f"USER GROUPS:{userGroups}")
-    except:
-        logging.exception("Exception in extracting user groups")
+    
     try:
         azure_openai_client = init_openai_client()
         response = await azure_openai_client.chat.completions.create(**model_args)
