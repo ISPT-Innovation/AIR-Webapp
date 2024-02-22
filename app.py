@@ -294,8 +294,6 @@ def init_cosmosdb_client():
 
 
 def get_configured_data_source():
-    logging.info(AZURE_SEARCH_INDEX)
-    AZURE_SEARCH_INDEX = 'air-ir'
     data_source = {}
     query_type = "simple"
     if DATASOURCE_TYPE == "AzureCognitiveSearch":
