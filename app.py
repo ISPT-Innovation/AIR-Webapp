@@ -20,7 +20,8 @@ from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
 
-from backend.utils import format_as_ndjson, format_stream_response, generateFilterString, parse_multi_columns, format_non_streaming_response, fetchUserGroups
+from backend.utils import format_as_ndjson, format_stream_response, generateFilterString, parse_multi_columns, \
+    format_non_streaming_response, fetchUserGroups
 
 bp = Blueprint("routes", __name__, static_folder="static", template_folder="static")
 
@@ -33,6 +34,7 @@ UI_CHAT_DESCRIPTION = os.environ.get("UI_CHAT_DESCRIPTION") or "This chatbot is 
 UI_FAVICON = os.environ.get("UI_FAVICON") or "/favicon.ico"
 UI_SHOW_SHARE_BUTTON = os.environ.get("UI_SHOW_SHARE_BUTTON", "true").lower() == "true"
 
+
 def create_app():
     app = Quart(__name__)
     app.register_blueprint(bp)
@@ -44,16 +46,18 @@ def create_app():
 async def index():
     return await render_template("index.html", title=UI_TITLE, favicon=UI_FAVICON)
 
+
 @bp.route("/favicon.ico")
 async def favicon():
     return await bp.send_static_file("favicon.ico")
+
 
 @bp.route("/assets/<path:path>")
 async def assets(path):
     return await send_from_directory("static/assets", path)
 
-load_dotenv()
 
+load_dotenv()
 
 # Debug settings
 DEBUG = os.environ.get("DEBUG", "false")
@@ -94,22 +98,26 @@ AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
 AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
 AZURE_OPENAI_MAX_TOKENS = os.environ.get("AZURE_OPENAI_MAX_TOKENS", 1000)
 AZURE_OPENAI_STOP_SEQUENCE = os.environ.get("AZURE_OPENAI_STOP_SEQUENCE")
-AZURE_OPENAI_SYSTEM_MESSAGE = os.environ.get("AZURE_OPENAI_SYSTEM_MESSAGE", "You are an AI assistant that helps people find information.")
+AZURE_OPENAI_SYSTEM_MESSAGE = os.environ.get("AZURE_OPENAI_SYSTEM_MESSAGE",
+                                             "You are an AI assistant that helps people find information.")
 AZURE_OPENAI_PREVIEW_API_VERSION = os.environ.get("AZURE_OPENAI_PREVIEW_API_VERSION", "2023-12-01-preview")
 AZURE_OPENAI_STREAM = os.environ.get("AZURE_OPENAI_STREAM", "true")
-AZURE_OPENAI_MODEL_NAME = os.environ.get("AZURE_OPENAI_MODEL_NAME", "gpt-35-turbo-16k") # Name of the model, e.g. 'gpt-35-turbo-16k' or 'gpt-4'
+AZURE_OPENAI_MODEL_NAME = os.environ.get("AZURE_OPENAI_MODEL_NAME",
+                                         "gpt-35-turbo-16k")  # Name of the model, e.g. 'gpt-35-turbo-16k' or 'gpt-4'
 AZURE_OPENAI_EMBEDDING_ENDPOINT = os.environ.get("AZURE_OPENAI_EMBEDDING_ENDPOINT")
 AZURE_OPENAI_EMBEDDING_KEY = os.environ.get("AZURE_OPENAI_EMBEDDING_KEY")
 AZURE_OPENAI_EMBEDDING_NAME = os.environ.get("AZURE_OPENAI_EMBEDDING_NAME", "")
 
 # CosmosDB Mongo vcore vector db Settings
-AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING")  #This has to be secure string
+AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING = os.environ.get(
+    "AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING")  # This has to be secure string
 AZURE_COSMOSDB_MONGO_VCORE_DATABASE = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_DATABASE")
 AZURE_COSMOSDB_MONGO_VCORE_CONTAINER = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_CONTAINER")
 AZURE_COSMOSDB_MONGO_VCORE_INDEX = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_INDEX")
 AZURE_COSMOSDB_MONGO_VCORE_TOP_K = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_TOP_K", AZURE_SEARCH_TOP_K)
-AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS", AZURE_SEARCH_STRICTNESS)  
-AZURE_COSMOSDB_MONGO_VCORE_ENABLE_IN_DOMAIN = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_ENABLE_IN_DOMAIN", AZURE_SEARCH_ENABLE_IN_DOMAIN)
+AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS", AZURE_SEARCH_STRICTNESS)
+AZURE_COSMOSDB_MONGO_VCORE_ENABLE_IN_DOMAIN = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_ENABLE_IN_DOMAIN",
+                                                             AZURE_SEARCH_ENABLE_IN_DOMAIN)
 AZURE_COSMOSDB_MONGO_VCORE_CONTENT_COLUMNS = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_CONTENT_COLUMNS", "")
 AZURE_COSMOSDB_MONGO_VCORE_FILENAME_COLUMN = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_FILENAME_COLUMN")
 AZURE_COSMOSDB_MONGO_VCORE_TITLE_COLUMN = os.environ.get("AZURE_COSMOSDB_MONGO_VCORE_TITLE_COLUMN")
@@ -145,7 +153,7 @@ PINECONE_ENVIRONMENT = os.environ.get("PINECONE_ENVIRONMENT")
 PINECONE_API_KEY = os.environ.get("PINECONE_API_KEY")
 PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME")
 PINECONE_TOP_K = os.environ.get("PINECONE_TOP_K", SEARCH_TOP_K)
-PINECONE_STRICTNESS = os.environ.get("PINECONE_STRICTNESS", SEARCH_STRICTNESS)  
+PINECONE_STRICTNESS = os.environ.get("PINECONE_STRICTNESS", SEARCH_STRICTNESS)
 PINECONE_ENABLE_IN_DOMAIN = os.environ.get("PINECONE_ENABLE_IN_DOMAIN", SEARCH_ENABLE_IN_DOMAIN)
 PINECONE_CONTENT_COLUMNS = os.environ.get("PINECONE_CONTENT_COLUMNS", "")
 PINECONE_FILENAME_COLUMN = os.environ.get("PINECONE_FILENAME_COLUMN")
@@ -156,9 +164,10 @@ PINECONE_VECTOR_COLUMNS = os.environ.get("PINECONE_VECTOR_COLUMNS")
 # Azure AI MLIndex Integration Settings - for use with MLIndex data assets created in Azure AI Studio
 AZURE_MLINDEX_NAME = os.environ.get("AZURE_MLINDEX_NAME")
 AZURE_MLINDEX_VERSION = os.environ.get("AZURE_MLINDEX_VERSION")
-AZURE_ML_PROJECT_RESOURCE_ID = os.environ.get("AZURE_ML_PROJECT_RESOURCE_ID") # /subscriptions/{sub ID}/resourceGroups/{rg name}/providers/Microsoft.MachineLearningServices/workspaces/{AML project name}
+AZURE_ML_PROJECT_RESOURCE_ID = os.environ.get(
+    "AZURE_ML_PROJECT_RESOURCE_ID")  # /subscriptions/{sub ID}/resourceGroups/{rg name}/providers/Microsoft.MachineLearningServices/workspaces/{AML project name}
 AZURE_MLINDEX_TOP_K = os.environ.get("AZURE_MLINDEX_TOP_K", SEARCH_TOP_K)
-AZURE_MLINDEX_STRICTNESS = os.environ.get("AZURE_MLINDEX_STRICTNESS", SEARCH_STRICTNESS)  
+AZURE_MLINDEX_STRICTNESS = os.environ.get("AZURE_MLINDEX_STRICTNESS", SEARCH_STRICTNESS)
 AZURE_MLINDEX_ENABLE_IN_DOMAIN = os.environ.get("AZURE_MLINDEX_ENABLE_IN_DOMAIN", SEARCH_ENABLE_IN_DOMAIN)
 AZURE_MLINDEX_CONTENT_COLUMNS = os.environ.get("AZURE_MLINDEX_CONTENT_COLUMNS", "")
 AZURE_MLINDEX_FILENAME_COLUMN = os.environ.get("AZURE_MLINDEX_FILENAME_COLUMN")
@@ -167,12 +176,11 @@ AZURE_MLINDEX_URL_COLUMN = os.environ.get("AZURE_MLINDEX_URL_COLUMN")
 AZURE_MLINDEX_VECTOR_COLUMNS = os.environ.get("AZURE_MLINDEX_VECTOR_COLUMNS")
 AZURE_MLINDEX_QUERY_TYPE = os.environ.get("AZURE_MLINDEX_QUERY_TYPE")
 
-
 # Frontend Settings via Environment Variables
 AUTH_ENABLED = os.environ.get("AUTH_ENABLED", "true").lower() == "true"
 CHAT_HISTORY_ENABLED = AZURE_COSMOSDB_ACCOUNT and AZURE_COSMOSDB_DATABASE and AZURE_COSMOSDB_CONVERSATIONS_CONTAINER
-frontend_settings = { 
-    "auth_enabled": AUTH_ENABLED, 
+frontend_settings = {
+    "auth_enabled": AUTH_ENABLED,
     "feedback_enabled": AZURE_COSMOSDB_ENABLE_FEEDBACK and CHAT_HISTORY_ENABLED,
     "ui": {
         "title": UI_TITLE,
@@ -184,28 +192,29 @@ frontend_settings = {
     }
 }
 
+
 def should_use_data():
     global DATASOURCE_TYPE
     if AZURE_SEARCH_SERVICE and AZURE_SEARCH_INDEX:
         DATASOURCE_TYPE = "AzureCognitiveSearch"
         logging.debug("Using Azure Cognitive Search")
         return True
-    
+
     if AZURE_COSMOSDB_MONGO_VCORE_DATABASE and AZURE_COSMOSDB_MONGO_VCORE_CONTAINER and AZURE_COSMOSDB_MONGO_VCORE_INDEX and AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING:
         DATASOURCE_TYPE = "AzureCosmosDB"
         logging.debug("Using Azure CosmosDB Mongo vcore")
         return True
-    
+
     if ELASTICSEARCH_ENDPOINT and ELASTICSEARCH_ENCODED_API_KEY and ELASTICSEARCH_INDEX:
         DATASOURCE_TYPE = "Elasticsearch"
         logging.debug("Using Elasticsearch")
         return True
-    
+
     if PINECONE_ENVIRONMENT and PINECONE_API_KEY and PINECONE_INDEX_NAME:
         DATASOURCE_TYPE = "Pinecone"
         logging.debug("Using Pinecone")
         return True
-    
+
     if AZURE_MLINDEX_NAME and AZURE_MLINDEX_VERSION and AZURE_ML_PROJECT_RESOURCE_ID:
         DATASOURCE_TYPE = "AzureMLIndex"
         logging.debug("Using Azure ML Index")
@@ -213,7 +222,9 @@ def should_use_data():
 
     return False
 
+
 SHOULD_USE_DATA = should_use_data()
+
 
 # Initialize Azure OpenAI Client
 def init_openai_client(use_data=SHOULD_USE_DATA):
@@ -222,15 +233,16 @@ def init_openai_client(use_data=SHOULD_USE_DATA):
         # Endpoint
         if not AZURE_OPENAI_ENDPOINT and not AZURE_OPENAI_RESOURCE:
             raise Exception("AZURE_OPENAI_ENDPOINT or AZURE_OPENAI_RESOURCE is required")
-        
+
         endpoint = AZURE_OPENAI_ENDPOINT if AZURE_OPENAI_ENDPOINT else f"https://{AZURE_OPENAI_RESOURCE}.openai.azure.com/"
-        
+
         # Authentication
         aoai_api_key = AZURE_OPENAI_KEY
         ad_token_provider = None
         if not aoai_api_key:
             logging.debug("No AZURE_OPENAI_KEY found, using Azure AD auth")
-            ad_token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+            ad_token_provider = get_bearer_token_provider(DefaultAzureCredential(),
+                                                          "https://cognitiveservices.azure.com/.default")
 
         # Deployment
         deployment = AZURE_OPENAI_MODEL
@@ -278,8 +290,8 @@ def init_cosmosdb_client():
                 credential = AZURE_COSMOSDB_ACCOUNT_KEY
 
             cosmos_conversation_client = CosmosConversationClient(
-                cosmosdb_endpoint=cosmos_endpoint, 
-                credential=credential, 
+                cosmosdb_endpoint=cosmos_endpoint,
+                credential=credential,
                 database_name=AZURE_COSMOSDB_DATABASE,
                 container_name=AZURE_COSMOSDB_CONVERSATIONS_CONTAINER,
                 enable_message_feedback=AZURE_COSMOSDB_ENABLE_FEEDBACK
@@ -290,8 +302,9 @@ def init_cosmosdb_client():
             raise e
     else:
         logging.debug("CosmosDB not configured")
-        
+
     return cosmos_conversation_client
+
 
 def get_allowed_index_based_on_user_group(user_groups):
     group_permissions_str = os.getenv('GROUP_PERMISSIONS', '{}')
@@ -302,15 +315,15 @@ def get_allowed_index_based_on_user_group(user_groups):
         group_id = group.get('id')
         if group_id in group_permissions:
             group_permission = group_permissions[group_id]
-            index = group_permission.get('index', AZURE_SEARCH_INDEX)
-            semanticSearchConfig = group_permission.get('semanticSearchConfig', AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG)
+            index = group_permission.get('index')
+            semanticSearchConfig = group_permission.get('semanticSearchConfig')
             return index, semanticSearchConfig
     return AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
 
 
 def get_configured_data_source():
     data_source = {}
-    search_index, semantic_search_config = AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG # default
+    search_index, semantic_search_config = AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG  # default
     try:
         userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
         userGroups = fetchUserGroups(userToken)
@@ -337,7 +350,7 @@ def get_configured_data_source():
 
             filter = generateFilterString(userToken)
             logging.debug(f"FILTER: {filter}")
-        
+
         # Set authentication
         authentication = {}
         if AZURE_SEARCH_KEY:
@@ -353,54 +366,61 @@ def get_configured_data_source():
             }
 
         data_source = {
-                "type": "AzureCognitiveSearch",
-                "parameters": {
-                    "endpoint": f"https://{AZURE_SEARCH_SERVICE}.search.windows.net",
-                    "authentication": authentication,
-                    "indexName": search_index,
-                    "fieldsMapping": {
-                        "contentFields": parse_multi_columns(AZURE_SEARCH_CONTENT_COLUMNS) if AZURE_SEARCH_CONTENT_COLUMNS else [],
-                        "titleField": AZURE_SEARCH_TITLE_COLUMN if AZURE_SEARCH_TITLE_COLUMN else None,
-                        "urlField": AZURE_SEARCH_URL_COLUMN if AZURE_SEARCH_URL_COLUMN else None,
-                        "filepathField": AZURE_SEARCH_FILENAME_COLUMN if AZURE_SEARCH_FILENAME_COLUMN else None,
-                        "vectorFields": parse_multi_columns(AZURE_SEARCH_VECTOR_COLUMNS) if AZURE_SEARCH_VECTOR_COLUMNS else []
-                    },
-                    "inScope": True if AZURE_SEARCH_ENABLE_IN_DOMAIN.lower() == "true" else False,
-                    "topNDocuments": int(AZURE_SEARCH_TOP_K) if AZURE_SEARCH_TOP_K else int(SEARCH_TOP_K),
-                    "queryType": query_type,
-                    "semanticConfiguration": semantic_search_config,
-                    "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE,
-                    "filter": filter,
-                    "strictness": int(AZURE_SEARCH_STRICTNESS) if AZURE_SEARCH_STRICTNESS else int(SEARCH_STRICTNESS)
-                }
+            "type": "AzureCognitiveSearch",
+            "parameters": {
+                "endpoint": f"https://{AZURE_SEARCH_SERVICE}.search.windows.net",
+                "authentication": authentication,
+                "indexName": search_index,
+                "fieldsMapping": {
+                    "contentFields": parse_multi_columns(
+                        AZURE_SEARCH_CONTENT_COLUMNS) if AZURE_SEARCH_CONTENT_COLUMNS else [],
+                    "titleField": AZURE_SEARCH_TITLE_COLUMN if AZURE_SEARCH_TITLE_COLUMN else None,
+                    "urlField": AZURE_SEARCH_URL_COLUMN if AZURE_SEARCH_URL_COLUMN else None,
+                    "filepathField": AZURE_SEARCH_FILENAME_COLUMN if AZURE_SEARCH_FILENAME_COLUMN else None,
+                    "vectorFields": parse_multi_columns(
+                        AZURE_SEARCH_VECTOR_COLUMNS) if AZURE_SEARCH_VECTOR_COLUMNS else []
+                },
+                "inScope": True if AZURE_SEARCH_ENABLE_IN_DOMAIN.lower() == "true" else False,
+                "topNDocuments": int(AZURE_SEARCH_TOP_K) if AZURE_SEARCH_TOP_K else int(SEARCH_TOP_K),
+                "queryType": query_type,
+                "semanticConfiguration": semantic_search_config,
+                "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE,
+                "filter": filter,
+                "strictness": int(AZURE_SEARCH_STRICTNESS) if AZURE_SEARCH_STRICTNESS else int(SEARCH_STRICTNESS)
             }
+        }
     elif DATASOURCE_TYPE == "AzureCosmosDB":
         query_type = "vector"
 
         data_source = {
-                "type": "AzureCosmosDB",
-                "parameters": {
-                    "authentication": {
-                        "type": "ConnectionString",
-                        "connectionString": AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING
-                    },
-                    "indexName": AZURE_COSMOSDB_MONGO_VCORE_INDEX,
-                    "databaseName": AZURE_COSMOSDB_MONGO_VCORE_DATABASE,
-                    "containerName": AZURE_COSMOSDB_MONGO_VCORE_CONTAINER,                    
-                    "fieldsMapping": {
-                        "contentFields": parse_multi_columns(AZURE_COSMOSDB_MONGO_VCORE_CONTENT_COLUMNS) if AZURE_COSMOSDB_MONGO_VCORE_CONTENT_COLUMNS else [],
-                        "titleField": AZURE_COSMOSDB_MONGO_VCORE_TITLE_COLUMN if AZURE_COSMOSDB_MONGO_VCORE_TITLE_COLUMN else None,
-                        "urlField": AZURE_COSMOSDB_MONGO_VCORE_URL_COLUMN if AZURE_COSMOSDB_MONGO_VCORE_URL_COLUMN else None,
-                        "filepathField": AZURE_COSMOSDB_MONGO_VCORE_FILENAME_COLUMN if AZURE_COSMOSDB_MONGO_VCORE_FILENAME_COLUMN else None,
-                        "vectorFields": parse_multi_columns(AZURE_COSMOSDB_MONGO_VCORE_VECTOR_COLUMNS) if AZURE_COSMOSDB_MONGO_VCORE_VECTOR_COLUMNS else []
-                    },
-                    "inScope": True if AZURE_COSMOSDB_MONGO_VCORE_ENABLE_IN_DOMAIN.lower() == "true" else False,
-                    "topNDocuments": int(AZURE_COSMOSDB_MONGO_VCORE_TOP_K) if AZURE_COSMOSDB_MONGO_VCORE_TOP_K else int(SEARCH_TOP_K),
-                    "strictness": int(AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS) if AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS else int(SEARCH_STRICTNESS),
-                    "queryType": query_type,
-                    "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE
-                }
+            "type": "AzureCosmosDB",
+            "parameters": {
+                "authentication": {
+                    "type": "ConnectionString",
+                    "connectionString": AZURE_COSMOSDB_MONGO_VCORE_CONNECTION_STRING
+                },
+                "indexName": AZURE_COSMOSDB_MONGO_VCORE_INDEX,
+                "databaseName": AZURE_COSMOSDB_MONGO_VCORE_DATABASE,
+                "containerName": AZURE_COSMOSDB_MONGO_VCORE_CONTAINER,
+                "fieldsMapping": {
+                    "contentFields": parse_multi_columns(
+                        AZURE_COSMOSDB_MONGO_VCORE_CONTENT_COLUMNS) if AZURE_COSMOSDB_MONGO_VCORE_CONTENT_COLUMNS else [],
+                    "titleField": AZURE_COSMOSDB_MONGO_VCORE_TITLE_COLUMN if AZURE_COSMOSDB_MONGO_VCORE_TITLE_COLUMN else None,
+                    "urlField": AZURE_COSMOSDB_MONGO_VCORE_URL_COLUMN if AZURE_COSMOSDB_MONGO_VCORE_URL_COLUMN else None,
+                    "filepathField": AZURE_COSMOSDB_MONGO_VCORE_FILENAME_COLUMN if AZURE_COSMOSDB_MONGO_VCORE_FILENAME_COLUMN else None,
+                    "vectorFields": parse_multi_columns(
+                        AZURE_COSMOSDB_MONGO_VCORE_VECTOR_COLUMNS) if AZURE_COSMOSDB_MONGO_VCORE_VECTOR_COLUMNS else []
+                },
+                "inScope": True if AZURE_COSMOSDB_MONGO_VCORE_ENABLE_IN_DOMAIN.lower() == "true" else False,
+                "topNDocuments": int(AZURE_COSMOSDB_MONGO_VCORE_TOP_K) if AZURE_COSMOSDB_MONGO_VCORE_TOP_K else int(
+                    SEARCH_TOP_K),
+                "strictness": int(
+                    AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS) if AZURE_COSMOSDB_MONGO_VCORE_STRICTNESS else int(
+                    SEARCH_STRICTNESS),
+                "queryType": query_type,
+                "roleInformation": AZURE_OPENAI_SYSTEM_MESSAGE
             }
+        }
     elif DATASOURCE_TYPE == "Elasticsearch":
         if ELASTICSEARCH_QUERY_TYPE:
             query_type = ELASTICSEARCH_QUERY_TYPE
@@ -415,11 +435,13 @@ def get_configured_data_source():
                 },
                 "indexName": ELASTICSEARCH_INDEX,
                 "fieldsMapping": {
-                    "contentFields": parse_multi_columns(ELASTICSEARCH_CONTENT_COLUMNS) if ELASTICSEARCH_CONTENT_COLUMNS else [],
+                    "contentFields": parse_multi_columns(
+                        ELASTICSEARCH_CONTENT_COLUMNS) if ELASTICSEARCH_CONTENT_COLUMNS else [],
                     "titleField": ELASTICSEARCH_TITLE_COLUMN if ELASTICSEARCH_TITLE_COLUMN else None,
                     "urlField": ELASTICSEARCH_URL_COLUMN if ELASTICSEARCH_URL_COLUMN else None,
                     "filepathField": ELASTICSEARCH_FILENAME_COLUMN if ELASTICSEARCH_FILENAME_COLUMN else None,
-                    "vectorFields": parse_multi_columns(ELASTICSEARCH_VECTOR_COLUMNS) if ELASTICSEARCH_VECTOR_COLUMNS else []
+                    "vectorFields": parse_multi_columns(
+                        ELASTICSEARCH_VECTOR_COLUMNS) if ELASTICSEARCH_VECTOR_COLUMNS else []
                 },
                 "inScope": True if ELASTICSEARCH_ENABLE_IN_DOMAIN.lower() == "true" else False,
                 "topNDocuments": int(ELASTICSEARCH_TOP_K) if ELASTICSEARCH_TOP_K else int(SEARCH_TOP_K),
@@ -439,11 +461,13 @@ def get_configured_data_source():
                 "version": AZURE_MLINDEX_VERSION,
                 "projectResourceId": AZURE_ML_PROJECT_RESOURCE_ID,
                 "fieldsMapping": {
-                    "contentFields": parse_multi_columns(AZURE_MLINDEX_CONTENT_COLUMNS) if AZURE_MLINDEX_CONTENT_COLUMNS else [],
+                    "contentFields": parse_multi_columns(
+                        AZURE_MLINDEX_CONTENT_COLUMNS) if AZURE_MLINDEX_CONTENT_COLUMNS else [],
                     "titleField": AZURE_MLINDEX_TITLE_COLUMN if AZURE_MLINDEX_TITLE_COLUMN else None,
                     "urlField": AZURE_MLINDEX_URL_COLUMN if AZURE_MLINDEX_URL_COLUMN else None,
                     "filepathField": AZURE_MLINDEX_FILENAME_COLUMN if AZURE_MLINDEX_FILENAME_COLUMN else None,
-                    "vectorFields": parse_multi_columns(AZURE_MLINDEX_VECTOR_COLUMNS) if AZURE_MLINDEX_VECTOR_COLUMNS else []
+                    "vectorFields": parse_multi_columns(
+                        AZURE_MLINDEX_VECTOR_COLUMNS) if AZURE_MLINDEX_VECTOR_COLUMNS else []
                 },
                 "inScope": True if AZURE_MLINDEX_ENABLE_IN_DOMAIN.lower() == "true" else False,
                 "topNDocuments": int(AZURE_MLINDEX_TOP_K) if AZURE_MLINDEX_TOP_K else int(SEARCH_TOP_K),
@@ -503,10 +527,12 @@ def get_configured_data_source():
                 "modelId": ELASTICSEARCH_EMBEDDING_MODEL_ID
             }
         else:
-            raise Exception(f"Vector query type ({query_type}) is selected for data source type {DATASOURCE_TYPE} but no embedding dependency is configured")
+            raise Exception(
+                f"Vector query type ({query_type}) is selected for data source type {DATASOURCE_TYPE} but no embedding dependency is configured")
         data_source["parameters"]["embeddingDependency"] = embeddingDependency
 
     return data_source
+
 
 def prepare_model_args(request_body):
     request_messages = request_body.get("messages", [])
@@ -522,7 +548,7 @@ def prepare_model_args(request_body):
     for message in request_messages:
         if message:
             messages.append({
-                "role": message["role"] ,
+                "role": message["role"],
                 "content": message["content"]
             })
 
@@ -551,15 +577,18 @@ def prepare_model_args(request_body):
         for field in authentication:
             if field in secret_params:
                 model_args_clean["extra_body"]["dataSources"][0]["parameters"]["authentication"][field] = "*****"
-        embeddingDependency = model_args_clean["extra_body"]["dataSources"][0]["parameters"].get("embeddingDependency", {})
+        embeddingDependency = model_args_clean["extra_body"]["dataSources"][0]["parameters"].get("embeddingDependency",
+                                                                                                 {})
         if "authentication" in embeddingDependency:
             for field in embeddingDependency["authentication"]:
                 if field in secret_params:
-                    model_args_clean["extra_body"]["dataSources"][0]["parameters"]["embeddingDependency"]["authentication"][field] = "*****"
-        
+                    model_args_clean["extra_body"]["dataSources"][0]["parameters"]["embeddingDependency"][
+                        "authentication"][field] = "*****"
+
     logging.debug(f"REQUEST BODY: {json.dumps(model_args_clean, indent=4)}")
-    
+
     return model_args
+
 
 async def send_chat_request(request):
     model_args = prepare_model_args(request)
@@ -574,11 +603,13 @@ async def send_chat_request(request):
 
     return response
 
+
 async def complete_chat_request(request_body):
     response = await send_chat_request(request_body)
     history_metadata = request_body.get("history_metadata", {})
 
     return format_non_streaming_response(response, history_metadata)
+
 
 async def stream_chat_request(request_body):
     response = await send_chat_request(request_body)
@@ -589,6 +620,7 @@ async def stream_chat_request(request_body):
             yield format_stream_response(completionChunk, history_metadata)
 
     return generate()
+
 
 async def conversation_internal(request_body):
     try:
@@ -601,7 +633,7 @@ async def conversation_internal(request_body):
         else:
             result = await complete_chat_request(request_body)
             return jsonify(result)
-    
+
     except Exception as ex:
         logging.exception(ex)
         if ex.status_code:
@@ -615,18 +647,21 @@ async def conversation():
     if not request.is_json:
         return jsonify({"error": "request must be json"}), 415
     request_json = await request.get_json()
-    
+
     return await conversation_internal(request_json)
 
-@bp.route("/frontend_settings", methods=["GET"])  
+
+@bp.route("/frontend_settings", methods=["GET"])
 def get_frontend_settings():
     try:
         return jsonify(frontend_settings), 200
     except Exception as e:
         logging.exception("Exception in /frontend_settings")
-        return jsonify({"error": str(e)}), 500  
+        return jsonify({"error": str(e)}), 500
 
-## Conversation History API ## 
+    ## Conversation History API ##
+
+
 @bp.route("/history/generate", methods=["POST"])
 async def add_conversation():
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
@@ -650,7 +685,7 @@ async def add_conversation():
             conversation_id = conversation_dict['id']
             history_metadata['title'] = title
             history_metadata['date'] = conversation_dict['createdAt']
-            
+
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request_json["messages"]
@@ -665,15 +700,15 @@ async def add_conversation():
                 raise Exception("Conversation not found for the given conversation ID: " + conversation_id + ".")
         else:
             raise Exception("No user message found")
-        
+
         await cosmos_conversation_client.cosmosdb_client.close()
-        
+
         # Submit request to Chat Completions for response
         request_body = await request.get_json()
         history_metadata['conversation_id'] = conversation_id
         request_body['history_metadata'] = history_metadata
         return await conversation_internal(request_body)
-       
+
     except Exception as e:
         logging.exception("Exception in /history/generate")
         return jsonify({"error": str(e)}), 500
@@ -697,7 +732,7 @@ async def update_conversation():
         # check for the conversation_id, if the conversation is not set, we will create a new one
         if not conversation_id:
             raise Exception("No conversation_id found")
-            
+
         ## Format the incoming message object in the "chat/completions" messages format
         ## then write it to the conversation history in cosmos
         messages = request_json["messages"]
@@ -719,15 +754,16 @@ async def update_conversation():
             )
         else:
             raise Exception("No bot messages found")
-        
+
         # Submit request to Chat Completions for response
         await cosmos_conversation_client.cosmosdb_client.close()
         response = {'success': True}
         return jsonify(response), 200
-       
+
     except Exception as e:
         logging.exception("Exception in /history/update")
         return jsonify({"error": str(e)}), 500
+
 
 @bp.route("/history/message_feedback", methods=["POST"])
 async def update_message():
@@ -742,17 +778,20 @@ async def update_message():
     try:
         if not message_id:
             return jsonify({"error": "message_id is required"}), 400
-        
+
         if not message_feedback:
             return jsonify({"error": "message_feedback is required"}), 400
-        
+
         ## update the message in cosmos
-        updated_message = await cosmos_conversation_client.update_message_feedback(user_id, message_id, message_feedback)
+        updated_message = await cosmos_conversation_client.update_message_feedback(user_id, message_id,
+                                                                                   message_feedback)
         if updated_message:
-            return jsonify({"message": f"Successfully updated message with feedback {message_feedback}", "message_id": message_id}), 200
+            return jsonify({"message": f"Successfully updated message with feedback {message_feedback}",
+                            "message_id": message_id}), 200
         else:
-            return jsonify({"error": f"Unable to update message {message_id}. It either does not exist or the user does not have access to it."}), 404
-        
+            return jsonify({
+                               "error": f"Unable to update message {message_id}. It either does not exist or the user does not have access to it."}), 404
+
     except Exception as e:
         logging.exception("Exception in /history/message_feedback")
         return jsonify({"error": str(e)}), 500
@@ -763,15 +802,15 @@ async def delete_conversation():
     ## get the user id from the request headers
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user['user_principal_id']
-    
+
     ## check request for conversation_id
     request_json = await request.get_json()
     conversation_id = request_json.get('conversation_id', None)
 
-    try: 
+    try:
         if not conversation_id:
             return jsonify({"error": "conversation_id is required"}), 400
-        
+
         ## make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
@@ -780,12 +819,13 @@ async def delete_conversation():
         ## delete the conversation messages from cosmos first
         deleted_messages = await cosmos_conversation_client.delete_messages(conversation_id, user_id)
 
-        ## Now delete the conversation 
+        ## Now delete the conversation
         deleted_conversation = await cosmos_conversation_client.delete_conversation(user_id, conversation_id)
 
         await cosmos_conversation_client.cosmosdb_client.close()
 
-        return jsonify({"message": "Successfully deleted conversation and messages", "conversation_id": conversation_id}), 200
+        return jsonify(
+            {"message": "Successfully deleted conversation and messages", "conversation_id": conversation_id}), 200
     except Exception as e:
         logging.exception("Exception in /history/delete")
         return jsonify({"error": str(e)}), 500
@@ -821,10 +861,10 @@ async def get_conversation():
     ## check request for conversation_id
     request_json = await request.get_json()
     conversation_id = request_json.get('conversation_id', None)
-    
+
     if not conversation_id:
         return jsonify({"error": "conversation_id is required"}), 400
-    
+
     ## make sure cosmos is configured
     cosmos_conversation_client = init_cosmosdb_client()
     if not cosmos_conversation_client:
@@ -834,16 +874,19 @@ async def get_conversation():
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
     ## return the conversation id and the messages in the bot frontend format
     if not conversation:
-        return jsonify({"error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
-    
+        return jsonify({
+                           "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
+
     # get the messages for the conversation from cosmos
     conversation_messages = await cosmos_conversation_client.get_messages(user_id, conversation_id)
 
     ## format the messages in the bot frontend format
-    messages = [{'id': msg['id'], 'role': msg['role'], 'content': msg['content'], 'createdAt': msg['createdAt'], 'feedback': msg.get('feedback')} for msg in conversation_messages]
+    messages = [{'id': msg['id'], 'role': msg['role'], 'content': msg['content'], 'createdAt': msg['createdAt'],
+                 'feedback': msg.get('feedback')} for msg in conversation_messages]
 
     await cosmos_conversation_client.cosmosdb_client.close()
     return jsonify({"conversation_id": conversation_id, "messages": messages}), 200
+
 
 @bp.route("/history/rename", methods=["POST"])
 async def rename_conversation():
@@ -853,19 +896,20 @@ async def rename_conversation():
     ## check request for conversation_id
     request_json = await request.get_json()
     conversation_id = request_json.get('conversation_id', None)
-    
+
     if not conversation_id:
         return jsonify({"error": "conversation_id is required"}), 400
-    
+
     ## make sure cosmos is configured
     cosmos_conversation_client = init_cosmosdb_client()
     if not cosmos_conversation_client:
         raise Exception("CosmosDB is not configured or not working")
-    
+
     ## get the conversation from cosmos
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
     if not conversation:
-        return jsonify({"error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
+        return jsonify({
+                           "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
 
     ## update the title
     title = request_json.get("title", None)
@@ -876,6 +920,7 @@ async def rename_conversation():
 
     await cosmos_conversation_client.cosmosdb_client.close()
     return jsonify(updated_conversation), 200
+
 
 @bp.route("/history/delete_all", methods=["DELETE"])
 async def delete_all_conversations():
@@ -893,35 +938,36 @@ async def delete_all_conversations():
         conversations = await cosmos_conversation_client.get_conversations(user_id, offset=0, limit=None)
         if not conversations:
             return jsonify({"error": f"No conversations for {user_id} were found"}), 404
-        
+
         # delete each conversation
         for conversation in conversations:
             ## delete the conversation messages from cosmos first
             deleted_messages = await cosmos_conversation_client.delete_messages(conversation['id'], user_id)
 
-            ## Now delete the conversation 
+            ## Now delete the conversation
             deleted_conversation = await cosmos_conversation_client.delete_conversation(user_id, conversation['id'])
         await cosmos_conversation_client.cosmosdb_client.close()
         return jsonify({"message": f"Successfully deleted conversation and messages for user {user_id}"}), 200
-    
+
     except Exception as e:
         logging.exception("Exception in /history/delete_all")
         return jsonify({"error": str(e)}), 500
+
 
 @bp.route("/history/clear", methods=["POST"])
 async def clear_messages():
     ## get the user id from the request headers
     authenticated_user = get_authenticated_user_details(request_headers=request.headers)
     user_id = authenticated_user['user_principal_id']
-    
+
     ## check request for conversation_id
     request_json = await request.get_json()
     conversation_id = request_json.get('conversation_id', None)
 
-    try: 
+    try:
         if not conversation_id:
             return jsonify({"error": "conversation_id is required"}), 400
-        
+
         ## make sure cosmos is configured
         cosmos_conversation_client = init_cosmosdb_client()
         if not cosmos_conversation_client:
@@ -930,7 +976,8 @@ async def clear_messages():
         ## delete the conversation messages from cosmos
         deleted_messages = await cosmos_conversation_client.delete_messages(conversation_id, user_id)
 
-        return jsonify({"message": "Successfully deleted messages in conversation", "conversation_id": conversation_id}), 200
+        return jsonify(
+            {"message": "Successfully deleted messages in conversation", "conversation_id": conversation_id}), 200
     except Exception as e:
         logging.exception("Exception in /history/clear_messages")
         return jsonify({"error": str(e)}), 500
@@ -940,7 +987,7 @@ async def clear_messages():
 async def ensure_cosmos():
     if not AZURE_COSMOSDB_ACCOUNT:
         return jsonify({"error": "CosmosDB is not configured"}), 404
-    
+
     try:
         cosmos_conversation_client = init_cosmosdb_client()
         success, err = await cosmos_conversation_client.ensure()
@@ -948,7 +995,7 @@ async def ensure_cosmos():
             if err:
                 return jsonify({"error": err}), 422
             return jsonify({"error": "CosmosDB is not configured or not working"}), 500
-        
+
         await cosmos_conversation_client.cosmosdb_client.close()
         return jsonify({"message": "CosmosDB is configured and working"}), 200
     except Exception as e:
@@ -957,7 +1004,8 @@ async def ensure_cosmos():
         if "Invalid credentials" in cosmos_exception:
             return jsonify({"error": cosmos_exception}), 401
         elif "Invalid CosmosDB database name" in cosmos_exception:
-            return jsonify({"error": f"{cosmos_exception} {AZURE_COSMOSDB_DATABASE} for account {AZURE_COSMOSDB_ACCOUNT}"}), 422
+            return jsonify(
+                {"error": f"{cosmos_exception} {AZURE_COSMOSDB_DATABASE} for account {AZURE_COSMOSDB_ACCOUNT}"}), 422
         elif "Invalid CosmosDB container name" in cosmos_exception:
             return jsonify({"error": f"{cosmos_exception}: {AZURE_COSMOSDB_CONVERSATIONS_CONTAINER}"}), 422
         else:
@@ -979,7 +1027,7 @@ async def generate_title(conversation_messages):
             temperature=1,
             max_tokens=64
         )
-        
+
         title = json.loads(response.choices[0].message.content)['title']
         return title
     except Exception as e:
