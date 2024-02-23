@@ -322,10 +322,14 @@ def get_allowed_index_based_on_user_group(user_groups):
     for group in user_groups:
         group_id = group.get('id')
         if group_id in group_permissions:
+            logging.exception(f"Matched {group_id}")
             group_permission = group_permissions[group_id]
-            index = group_permission['index']
-            semanticSearchConfig = group_permission['semanticSearchConfig']
-            return index, semanticSearchConfig
+            logging.exception(f"step 1 {group_permission}")
+
+            _index = group_permission['index']
+            _semanticSearchConfig = group_permission['semanticSearchConfig']
+            logging.exception(f"step 2 {_index} {_semanticSearchConfig}")
+            return _index, _semanticSearchConfig
     return AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
 
 
@@ -336,8 +340,10 @@ def get_configured_data_source():
         userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
         userGroups = fetchUserGroups(userToken)
         logging.exception(f"USER GROUPS:{userGroups}")
-        search_index, semantic_search_config = get_allowed_index_based_on_user_group(userGroups)
-        logging.exception(f"USER GROUPS:{search_index} - {AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG}")
+        result = get_allowed_index_based_on_user_group(userGroups)
+        search_index = result[0]
+        semantic_search_config = result[1]
+        logging.exception(f"USER GROUPS:{search_index} - {semantic_search_config}")
     except:
         logging.exception("Exception in extracting user groups")
 
@@ -372,6 +378,7 @@ def get_configured_data_source():
             authentication = {
                 "type": "SystemAssignedManagedIdentity"
             }
+        logging.exception(f"FINAL SEARCH REQUEST IS:{search_index} - {semantic_search_config}")
 
         data_source = {
             "type": "AzureCognitiveSearch",
