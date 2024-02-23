@@ -310,13 +310,21 @@ def get_allowed_index_based_on_user_group(user_groups):
     group_permissions_str = os.getenv('GROUP_PERMISSIONS', '{}')
     group_permissions = json.loads(group_permissions_str)
     logging.exception(f"GROUP PERMISSIONS:{group_permissions}")
+    for group_id in group_permissions:
+        logging.exception(f"GROUP:{group_id}")
+        group_permission = group_permissions[group_id]
+        logging.exception(f"GROUP_PERMISSION:{group_permission}")
+        index = group_permission['index']
+        logging.exception(f"GROUP_INDEX:{index}")
+        semanticSearchConfig = group_permission['semanticSearchConfig']
+        logging.exception(f"GROUP_INDEX:{semanticSearchConfig}")
     allowed_indexes_for_this_user = []
     for group in user_groups:
         group_id = group.get('id')
         if group_id in group_permissions:
             group_permission = group_permissions[group_id]
-            index = group_permission.get('index')
-            semanticSearchConfig = group_permission.get('semanticSearchConfig')
+            index = group_permission['index']
+            semanticSearchConfig = group_permission['semanticSearchConfig']
             return index, semanticSearchConfig
     return AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
 
