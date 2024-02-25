@@ -784,7 +784,7 @@ const Chat = () => {
                                 <span aria-label="Citations" className={styles.citationPanelHeader}>Citations</span>
                                 <IconButton iconProps={{ iconName: 'Cancel' }} aria-label="Close citations panel" onClick={() => setIsCitationPanelOpen(false)} />
                             </Stack>
-                            <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.url && !activeCitation.url.includes("blob.core") ? activeCitation.url : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
+                            <h5 className={styles.citationPanelTitle} tabIndex={0} title={activeCitation.metadata_storage_path && !activeCitation.metadata_storage_path.includes("blob.core") ? activeCitation.metadata_storage_path : activeCitation.title ?? ""} onClick={() => onViewSource(activeCitation)}>{activeCitation.title}</h5>
                             <div tabIndex={0}>
                                 <ReactMarkdown
                                     linkTarget="_blank"
