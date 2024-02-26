@@ -15,6 +15,7 @@ export type Citation = {
     metadata: string | null;
     chunk_id: string | null;
     reindex_id: string | null;
+    metadata_storage_path: string | null;
 }
 
 export type ToolMessageContent = {

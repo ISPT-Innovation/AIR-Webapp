@@ -23,6 +23,7 @@ export function parseAnswer(answer: AskResponse): ParsedAnswer {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);
           citation.id = citationIndex; // original doc index to de-dupe
           citation.reindex_id = citationReindex.toString(); // reindex from 1 for display
+          citation.metadata_storage_path = "123";
           filteredCitations.push(citation);
         }
     })
