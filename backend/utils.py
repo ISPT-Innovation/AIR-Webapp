@@ -4,6 +4,7 @@ import logging
 import requests
 import dataclasses
 
+from urllib import parse
 from azure.storage.blob import generate_blob_sas, BlobSasPermissions
 from datetime import datetime, timedelta
 
@@ -163,9 +164,11 @@ def generate_sas_url(messageObj):
 
     for citation in citations:
         if citation['url']:
+            blob_name=parse.unquote(citation['url'].split(f'core.windows.net/{CONTAINER_NAME}/')[1])
+            print(f'BLOB NAME IS {blob_name}')
             sas_token = generate_blob_sas(account_name=STORAGE_ACCOUNT_NAME,
                                         container_name=CONTAINER_NAME,
-                                        blob_name=citation['title'],
+                                        blob_name=blob_name,
                                         account_key=STORAGE_ACCOUNT_KEY,
                                         permission=BlobSasPermissions(read=True),
                                         expiry=datetime.utcnow() + timedelta(hours=1))  # Token valid for 1 hour
