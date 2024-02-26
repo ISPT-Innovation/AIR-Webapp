@@ -600,8 +600,8 @@ const Chat = () => {
     };
 
     const onViewSource = (citation: Citation) => {
-        if (citation.url && !citation.url.includes("blob.core")) {
-            window.open(citation.url, "_blank");
+        if (citation.metadata_storage_path && citation.metadata_storage_path.includes("blob.core")) {
+            window.open(citation.metadata_storage_path, "_blank");
         }
     };
 
