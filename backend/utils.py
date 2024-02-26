@@ -4,7 +4,14 @@ import logging
 import requests
 import dataclasses
 
+from azure.storage.blob import generate_blob_sas, BlobSasPermissions
+from datetime import datetime, timedelta
+
+STORAGE_ACCOUNT_NAME = os.environ.get("AZURE_STORAGE_ACCOUNT_NAME")
+STORAGE_ACCOUNT_KEY = os.environ.get("AZURE_STORAGE_ACCOUNT_KEY")
+CONTAINER_NAME = os.environ.get("AZURE_STORAGE_CONTAINER_NAME")
 DEBUG = os.environ.get("DEBUG", "false")
+
 if DEBUG.lower() == "true":
     logging.basicConfig(level=logging.DEBUG)
 
@@ -124,6 +131,8 @@ def format_stream_response(chatCompletionChunk, history_metadata, message_uuid=N
             if hasattr(delta, "context") and delta.context.get("messages"):
                 for m in delta.context["messages"]:
                     if m["role"] == "tool":
+                        # Generate SAS token which will be valid for 1 hour
+                        m['content']=generate_sas_url(m["content"])
                         messageObj = {
                             "role": "tool",
                             "content": m["content"]
@@ -147,3 +156,19 @@ def format_stream_response(chatCompletionChunk, history_metadata, message_uuid=N
                     return response_obj
     
     return {}
+
+def generate_sas_url(messageObj):
+    messageObj=json.loads(messageObj)
+    citations=messageObj['citations']
+
+    for citation in citations:
+        if citation['url']:
+            sas_token = generate_blob_sas(account_name=STORAGE_ACCOUNT_NAME,
+                                        container_name=CONTAINER_NAME,
+                                        blob_name=citation['title'],
+                                        account_key=STORAGE_ACCOUNT_KEY,
+                                        permission=BlobSasPermissions(read=True),
+                                        expiry=datetime.utcnow() + timedelta(hours=1))  # Token valid for 1 hour
+            citation['url']=citation['url']+f'?{sas_token}'
+
+    return json.dumps(messageObj)
