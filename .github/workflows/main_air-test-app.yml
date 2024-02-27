@@ -66,4 +66,4 @@ jobs:
         with:
           app-name: 'air-test-app'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_22779335BFBF46DB81B855031A815A7A }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_DC77CAB7EC3A4C5EAFF929E8BEE7A82C }}
