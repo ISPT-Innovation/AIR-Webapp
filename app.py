@@ -309,26 +309,17 @@ def init_cosmosdb_client():
 def get_allowed_index_based_on_user_group(user_groups):
     group_permissions_str = os.getenv('GROUP_PERMISSIONS', '{}')
     group_permissions = json.loads(group_permissions_str)
-    logging.exception(f"GROUP PERMISSIONS:{group_permissions}")
-    for group_id in group_permissions:
-        logging.exception(f"GROUP:{group_id}")
-        group_permission = group_permissions[group_id]
-        logging.exception(f"GROUP_PERMISSION:{group_permission}")
-        index = group_permission['index']
-        logging.exception(f"GROUP_INDEX:{index}")
-        semanticSearchConfig = group_permission['semanticSearchConfig']
-        logging.exception(f"GROUP_INDEX:{semanticSearchConfig}")
+    logging.info(f"GROUP PERMISSIONS:{group_permissions}")
     allowed_indexes_for_this_user = []
     for group in user_groups:
         group_id = group.get('id')
         if group_id in group_permissions:
-            logging.exception(f"Matched {group_id}")
+            logging.info(f"Matched {group_id}")
             group_permission = group_permissions[group_id]
-            logging.exception(f"step 1 {group_permission}")
-
+            logging.info(f"step 1 {group_permission}")
             _index = group_permission['index']
             _semanticSearchConfig = group_permission['semanticSearchConfig']
-            logging.exception(f"step 2 {_index} {_semanticSearchConfig}")
+            logging.info(f"step 2 {_index} {_semanticSearchConfig}")
             return _index, _semanticSearchConfig
     return AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
 
@@ -339,11 +330,11 @@ def get_configured_data_source():
     try:
         userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
         userGroups = fetchUserGroups(userToken)
-        logging.exception(f"USER GROUPS:{userGroups}")
+        logging.info(f"USER GROUPS:{userGroups}")
         result = get_allowed_index_based_on_user_group(userGroups)
         search_index = result[0]
         semantic_search_config = result[1]
-        logging.exception(f"USER GROUPS:{search_index} - {semantic_search_config}")
+        logging.info(f"USER GROUPS:{search_index} - {semantic_search_config}")
     except:
         logging.exception("Exception in extracting user groups")
 
@@ -566,6 +557,7 @@ def prepare_model_args(request_body):
                 "role": message["role"],
                 "content": message["content"]
             })
+    logging.info(f"CHAT QUERY :{request_messages}")
 
     model_args = {
         "messages": messages,
