@@ -49,3 +49,5 @@ jobs:
         slot-name: 'production'
         publish-profile: ${{ secrets.AzureAppService_PublishProfile_4411fe91d7c741738ae8a78bd7bdc085 }}
         images: 'ispttestcr.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_09bc40aecaa04b70953729c69855d6f4 }}/sampleappaoaichatgpt.azurecr.io/sample-app-aoai-chatgpt:${{ github.sha }}'
+
+        

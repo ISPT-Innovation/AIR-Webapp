@@ -31,7 +31,7 @@ jobs:
       with:
         push: true
         tags: isptaircontainerregistry.azurecr.io/${{ secrets.AzureAppService_ContainerUsername_dd1b332b79d844ba84fdc64eb578c8d8 }}/sample-app-aoai-chatgpt:${{ github.sha }}
-        file: ./Dockerfile
+        file: ./WebApp.Dockerfile
 
   deploy:
     runs-on: ubuntu-latest
