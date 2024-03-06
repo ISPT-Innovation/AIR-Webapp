@@ -2,7 +2,7 @@
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 # More info on Python, GitHub Actions, and Azure App Service: https://aka.ms/python-webapps-actions
 
-name: main_air_test_app_ispt_env
+name: Build and deploy Python app to Azure Web App - air-test-app
 
 on:
   push:
@@ -66,4 +66,4 @@ jobs:
         with:
           app-name: 'air-test-app'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_DC77CAB7EC3A4C5EAFF929E8BEE7A82C }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_BE52CF1359C5470FB192AB6CB67A8CDC }}
