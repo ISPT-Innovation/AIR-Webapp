@@ -355,7 +355,71 @@
             "metadata": {
                 "description": "The model ID for a model deployed on Elasticsearch to use for generating embeddings for queries."
             }
+        },
+		"UI_Title": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Chat title (left-top) and page title (HTML)"
+            }
+        },
+		"UI_Logo": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Logo (left-top). Defaults to Contoso logo. Configure the URL to your logo image to modify."
+            }
+        },
+		"UI_Chat_Logo": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Logo (chat window). Defaults to Contoso logo. Configure the URL to your logo image to modify."
+            }
+        },
+		"UI_Chat_Title": {
+            "type": "string",
+            "defaultValue": "Start chatting",
+            "metadata": {
+                "description": "Title (chat window)"
+            }
+        },
+		"UI_Chat_Description": {
+            "type": "string",
+            "defaultValue": "This chatbot is configured to answer your questions",
+            "metadata": {
+                "description": "Description (chat window)"
+            }
+        },
+		"UI_Favicon": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Defaults to Contoso favicon. Configure the URL to your favicon to modify."
+            }
+        },
+        "Azure_Storage_Account_Name": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Azure storage account name used for SAS token generation of citation files"
+            }
+        },
+        "Azure_Stoage_Account_Key": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Azure storage account key used for SAS token generation of citation files"
+            }
+        },
+        "Azure_Storage_Container_Name": {
+            "type": "string",
+            "defaultValue": "",
+            "metadata": {
+                "description": "Azure storage account container name used for SAS token generation of citation files"
+            }
         }
+
     },
     "variables": {
         "WebAppImageName": "DOCKER|sampleappaoaichatgpt.azurecr.io/sample-app-aoai-chatgpt:latest",
@@ -586,7 +650,43 @@
                         {
                             "name": "UWSGI_THREADS",
                             "value": "2"
-                        }                        
+                        },
+						{
+                            "name": "UI_TITLE",
+                            "value": "[parameters('UI_Title')]"
+                        },
+						{
+                            "name": "UI_LOGO",
+                            "value": "[parameters('UI_Logo')]"
+                        },
+						{
+                            "name": "UI_CHAT_LOGO",
+                            "value": "[parameters('UI_Chat_Logo')]"
+                        },
+						{
+                            "name": "UI_CHAT_TITLE",
+                            "value": "[parameters('UI_Chat_Title')]"
+                        },
+						{
+                            "name": "UI_CHAT_DESCRIPTION",
+                            "value": "[parameters('UI_Chat_Description')]"
+                        },
+						{
+                            "name": "UI_FAVICON",
+                            "value": "[parameters('UI_Favicon')]"
+                        },
+                        {
+                            "name": "AZURE_STORAGE_ACCOUNT_NAME",
+                            "value": "[parameters('Azure_Storage_Account_Name')]"
+                        },
+                        {
+                            "name": "AZURE_STORAGE_ACCOUNT_KEY",
+                            "value": "[parameters('Azure_Stoage_Account_Key')]"
+                        },
+                        {
+                            "name": "AZURE_STORAGE_CONTAINER_NAME",
+                            "value": "[parameters('Azure_Storage_Container_Name')]"
+                        }
                     ],
                     "linuxFxVersion": "[variables('WebAppImageName')]"
                 }
