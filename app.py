@@ -3,6 +3,7 @@ import json
 import os
 import logging
 import uuid
+import time
 from dotenv import load_dotenv
 
 from quart import (
@@ -636,10 +637,14 @@ async def stream_chat_request(request_body):
 async def conversation_internal(request_body):
     try:
         if SHOULD_STREAM:
+            start_time = time.time()
             result = await stream_chat_request(request_body)
             response = await make_response(format_as_ndjson(result))
+            end_time = time.time()
+            time_taken = round(end_time - start_time, 2)
             response.timeout = None
             response.mimetype = "application/json-lines"
+            response.headers['time_taken'] = time_taken
             return response
         else:
             result = await complete_chat_request(request_body)
