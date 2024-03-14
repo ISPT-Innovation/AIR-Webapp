@@ -644,7 +644,7 @@ async def conversation_internal(request_body):
             time_taken = round(end_time - start_time, 2)
             response.timeout = None
             response.mimetype = "application/json-lines"
-            response.headers['time_taken'] = time_taken
+            response.headers['time_taken'] = str(time_taken)
             return response
         else:
             result = await complete_chat_request(request_body)
