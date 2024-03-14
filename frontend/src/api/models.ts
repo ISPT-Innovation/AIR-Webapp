@@ -130,5 +130,7 @@ export enum Feedback {
     Violent = "violent",
     Sexual = "sexual",
     Manipulative = "manipulative",
-    OtherHarmful = "other_harmlful"
+    OtherHarmful = "other_harmlful",
+    PartiallyAccurate = "partially accurate",
+    ResponseExpectedButNotGenerated = "Response_was_expected_but_not_generated"
 }
