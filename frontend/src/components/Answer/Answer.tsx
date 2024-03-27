@@ -41,9 +41,10 @@ export const Answer = ({
     const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
     const [showReportInappropriateFeedback, setShowReportInappropriateFeedback] = useState(false);
     const [negativeFeedbackList, setNegativeFeedbackList] = useState<Feedback[]>([]);
+    const [additionalComments, setAdditionalComments] = useState(""); // State to store the additional comments
     const appStateContext = useContext(AppStateContext)
-    const FEEDBACK_ENABLED = appStateContext?.state.frontendSettings?.feedback_enabled && appStateContext?.state.isCosmosDBAvailable?.cosmosDB; 
-    
+    const FEEDBACK_ENABLED = appStateContext?.state.frontendSettings?.feedback_enabled && appStateContext?.state.isCosmosDBAvailable?.cosmosDB;
+
     const handleChevronClick = () => {
         setChevronIsExpanded(!chevronIsExpanded);
         toggleIsRefAccordionOpen();
@@ -55,7 +56,7 @@ export const Answer = ({
 
     useEffect(() => {
         if (answer.message_id == undefined) return;
-        
+
         let currentFeedbackState;
         if (appStateContext?.state.feedbackState && appStateContext?.state.feedbackState[answer.message_id]) {
             currentFeedbackState = appStateContext?.state.feedbackState[answer.message_id];
@@ -101,7 +102,7 @@ export const Answer = ({
         setFeedbackState(newFeedbackState);
 
         // Update message feedback in db
-        await historyMessageFeedback(answer.message_id, newFeedbackState);
+        await historyMessageFeedback(answer.message_id, newFeedbackState, additionalComments);
     }
 
     const onDislikeResponseClicked = async () => {
@@ -116,7 +117,7 @@ export const Answer = ({
             // Reset negative feedback to neutral
             newFeedbackState = Feedback.Neutral;
             setFeedbackState(newFeedbackState);
-            await historyMessageFeedback(answer.message_id, Feedback.Neutral);
+            await historyMessageFeedback(answer.message_id, Feedback.Neutral, additionalComments);
         }
         appStateContext?.dispatch({ type: 'SET_FEEDBACK_STATE', payload: { answerId: answer.message_id, feedback: newFeedbackState }});
     }
@@ -137,9 +138,13 @@ export const Answer = ({
 
     const onSubmitNegativeFeedback = async () => {
         if (answer.message_id == undefined) return;
-        await historyMessageFeedback(answer.message_id, negativeFeedbackList.join(","));
+        await historyMessageFeedback(answer.message_id, negativeFeedbackList.join(","), additionalComments);
         resetFeedbackDialog();
     }
+
+    const handleAdditionalCommentsChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setAdditionalComments(event.target.value); 
+    };
 
     const resetFeedbackDialog = () => {
         setIsFeedbackDialogOpen(false);
@@ -157,7 +162,7 @@ export const Answer = ({
                 <Checkbox label="References are inaccurate" id={Feedback.WrongCitation} defaultChecked={negativeFeedbackList.includes(Feedback.WrongCitation)} onChange={updateFeedbackList}></Checkbox>
                 <Checkbox label="Response expected but not generated" id={Feedback.ResponseExpectedButNotGenerated} defaultChecked={negativeFeedbackList.includes(Feedback.ResponseExpectedButNotGenerated)} onChange={updateFeedbackList}></Checkbox>
             </Stack>
-            <textarea placeholder="Enter additional comments..." />
+            <textarea placeholder="Enter additional comments..." value={additionalComments} onChange={handleAdditionalCommentsChange} />
 
             <div onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer"}}>Report inappropriate content</div>
         </>);
@@ -181,7 +186,7 @@ export const Answer = ({
     return (
         <>
             <Stack className={styles.answerContainer} tabIndex={0}>
-                
+
                 <Stack.Item>
                     <Stack horizontal grow>
                         <Stack.Item grow>
@@ -198,22 +203,22 @@ export const Answer = ({
                                     aria-hidden="false"
                                     aria-label="Like this response"
                                     onClick={() => onLikeResponseClicked()}
-                                    style={feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive ? 
-                                        { color: "darkgreen", cursor: "pointer" } : 
+                                    style={feedbackState === Feedback.Positive || appStateContext?.state.feedbackState[answer.message_id] === Feedback.Positive ?
+                                        { color: "darkgreen", cursor: "pointer" } :
                                         { color: "slategray", cursor: "pointer" }}
                                 />
                                 <ThumbDislike20Filled
                                     aria-hidden="false"
                                     aria-label="Dislike this response"
                                     onClick={() => onDislikeResponseClicked()}
-                                    style={(feedbackState !== Feedback.Positive && feedbackState !== Feedback.Neutral && feedbackState !== undefined) ? 
-                                        { color: "darkred", cursor: "pointer" } : 
+                                    style={(feedbackState !== Feedback.Positive && feedbackState !== Feedback.Neutral && feedbackState !== undefined) ?
+                                        { color: "darkred", cursor: "pointer" } :
                                         { color: "slategray", cursor: "pointer" }}
                                 />
                             </Stack>}
                         </Stack.Item>
                     </Stack>
-                    
+
                 </Stack.Item>
                 <Stack horizontal className={styles.answerFooter}>
                 {!!parsedAnswer.citations.length && (
@@ -235,7 +240,7 @@ export const Answer = ({
                                 onClick={handleChevronClick} iconName={chevronIsExpanded ? 'ChevronDown' : 'ChevronRight'}
                                 />
                             </Stack>
-                            
+
                         </Stack>
                     </Stack.Item>
                 )}
@@ -243,16 +248,16 @@ export const Answer = ({
                     <span className={styles.answerDisclaimer}>AI-generated content may not always be accurate</span>
                 </Stack.Item>
                 </Stack>
-                {chevronIsExpanded && 
+                {chevronIsExpanded &&
                     <div style={{ marginTop: 8, display: "flex", flexFlow: "wrap column", maxHeight: "150px", gap: "4px" }}>
                         {parsedAnswer.citations.map((citation, idx) => {
                             return (
-                                <span 
-                                    title={createCitationFilepath(citation, ++idx)} 
-                                    tabIndex={0} 
-                                    role="link" 
-                                    key={idx} 
-                                    onClick={() => onCitationClicked(citation)} 
+                                <span
+                                    title={createCitationFilepath(citation, ++idx)}
+                                    tabIndex={0}
+                                    role="link"
+                                    key={idx}
+                                    onClick={() => onCitationClicked(citation)}
                                     onKeyDown={e => e.key === "Enter" || e.key === " " ? onCitationClicked(citation) : null}
                                     className={styles.citationContainer}
                                     aria-label={createCitationFilepath(citation, idx)}
@@ -264,14 +269,14 @@ export const Answer = ({
                     </div>
                 }
             </Stack>
-            <Dialog 
+            <Dialog
                 onDismiss={() => {
                     resetFeedbackDialog();
                     setFeedbackState(Feedback.Neutral);
                 }}
                 hidden={!isFeedbackDialogOpen}
                 styles={{
-                    
+
                     main: [{
                         selectors: {
                           ['@media (min-width: 480px)']: {
@@ -292,14 +297,14 @@ export const Answer = ({
             >
                 <Stack tokens={{childrenGap: 4}}>
                     <div>Your feedback will improve this experience.</div>
-                    
+
                     {!showReportInappropriateFeedback ? <UnhelpfulFeedbackContent/> : <ReportInappropriateFeedbackContent/>}
-                    
+
                     <div>By pressing submit, your feedback will be visible to the application owner.</div>
-                    
+
                     <DefaultButton disabled={negativeFeedbackList.length < 1} onClick={onSubmitNegativeFeedback}>Submit</DefaultButton>
                 </Stack>
-                
+
             </Dialog>
         </>
     );
