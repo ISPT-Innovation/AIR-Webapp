@@ -102,7 +102,7 @@ export const Answer = ({
         setFeedbackState(newFeedbackState);
 
         // Update message feedback in db
-        await historyMessageFeedback(answer.message_id, newFeedbackState, additionalComments);
+        await historyMessageFeedback(answer.message_id, newFeedbackState);
     }
 
     const onDislikeResponseClicked = async () => {
@@ -117,7 +117,7 @@ export const Answer = ({
             // Reset negative feedback to neutral
             newFeedbackState = Feedback.Neutral;
             setFeedbackState(newFeedbackState);
-            await historyMessageFeedback(answer.message_id, Feedback.Neutral, additionalComments);
+            await historyMessageFeedback(answer.message_id, Feedback.Neutral);
         }
         appStateContext?.dispatch({ type: 'SET_FEEDBACK_STATE', payload: { answerId: answer.message_id, feedback: newFeedbackState }});
     }
@@ -138,7 +138,8 @@ export const Answer = ({
 
     const onSubmitNegativeFeedback = async () => {
         if (answer.message_id == undefined) return;
-        await historyMessageFeedback(answer.message_id, negativeFeedbackList.join(","), additionalComments);
+        const combinedFeedback = `${negativeFeedbackList.join(",")}, ${additionalComments}`;
+        await historyMessageFeedback(answer.message_id, combinedFeedback);
         resetFeedbackDialog();
     }
 
