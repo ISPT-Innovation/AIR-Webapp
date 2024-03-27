@@ -1,4 +1,4 @@
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState, useContext } from "react";
+import { FormEvent, useEffect, useMemo, useState, useContext } from "react";
 import { useBoolean } from "@fluentui/react-hooks"
 import { Checkbox, DefaultButton, Dialog, FontIcon, Stack, Text } from "@fluentui/react";
 import DOMPurify from 'dompurify';
@@ -143,8 +143,9 @@ export const Answer = ({
         resetFeedbackDialog();
     }
 
-    const handleAdditionalCommentsChange = (event: ChangeEvent<HTMLInputElement>) => {
-        setAdditionalComments(event.target.value); 
+    const handleAdditionalCommentsChange = (event: FormEvent<HTMLTextAreaElement>) => {
+        const target = event.target as HTMLTextAreaElement;
+        setAdditionalComments(target.value);
     };
 
     const resetFeedbackDialog = () => {
@@ -163,16 +164,8 @@ export const Answer = ({
                 <Checkbox label="References are inaccurate" id={Feedback.WrongCitation} defaultChecked={negativeFeedbackList.includes(Feedback.WrongCitation)} onChange={updateFeedbackList}></Checkbox>
                 <Checkbox label="Response expected but not generated" id={Feedback.ResponseExpectedButNotGenerated} defaultChecked={negativeFeedbackList.includes(Feedback.ResponseExpectedButNotGenerated)} onChange={updateFeedbackList}></Checkbox>
             </Stack>
-            <div>
-                <label htmlFor="additionalComments">Enter additional comments:</label>
-                <input
-                    type="text"
-                    id="additionalComments"
-                    value={additionalComments}
-                    onChange={handleAdditionalCommentsChange}
-                    placeholder="Enter additional comments..."
-                />
-            </div>
+            <textarea placeholder="Enter additional comments..." value={additionalComments} onChange={handleAdditionalCommentsChange} />
+
             <div onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer"}}>Report inappropriate content</div>
         </>);
     }
