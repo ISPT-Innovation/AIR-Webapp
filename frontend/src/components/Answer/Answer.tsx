@@ -41,7 +41,6 @@ export const Answer = ({
     const [isFeedbackDialogOpen, setIsFeedbackDialogOpen] = useState(false);
     const [showReportInappropriateFeedback, setShowReportInappropriateFeedback] = useState(false);
     const [negativeFeedbackList, setNegativeFeedbackList] = useState<Feedback[]>([]);
-    const [additionalComments, setAdditionalComments] = useState("");
     const appStateContext = useContext(AppStateContext)
     const FEEDBACK_ENABLED = appStateContext?.state.frontendSettings?.feedback_enabled && appStateContext?.state.isCosmosDBAvailable?.cosmosDB;
 
@@ -163,7 +162,6 @@ export const Answer = ({
             <textarea
                 id="additionalComments"
                 placeholder="Enter additional comments..."
-                value={additionalComments}
             />
             <div onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer"}}>Report inappropriate content</div>
         </>);
