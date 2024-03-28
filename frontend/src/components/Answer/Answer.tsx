@@ -42,6 +42,13 @@ export const Answer = ({
     const [showReportInappropriateFeedback, setShowReportInappropriateFeedback] = useState(false);
     const [negativeFeedbackList, setNegativeFeedbackList] = useState<Feedback[]>([]);
     const appStateContext = useContext(AppStateContext)
+    const [additionalComments, setAdditionalComments] = useState("");
+
+    const additionalCommentsInput = React.useRef(null);
+    useEffect(() => {
+        additionalCommentsInput.current.focus();
+    }, [additionalComments]);
+
     const FEEDBACK_ENABLED = appStateContext?.state.frontendSettings?.feedback_enabled && appStateContext?.state.isCosmosDBAvailable?.cosmosDB;
 
     const handleChevronClick = () => {
@@ -137,11 +144,14 @@ export const Answer = ({
 
     const onSubmitNegativeFeedback = async () => {
         if (answer.message_id == undefined) return;
-        const currentAdditionalComments = document.getElementById("additionalComments")?.nodeValue || "";
-        const combinedFeedback = `${negativeFeedbackList.join(",")}, ${currentAdditionalComments}`;
+        const combinedFeedback = `${negativeFeedbackList.join(",")}, ${additionalComments}`;
         await historyMessageFeedback(answer.message_id, combinedFeedback);
         resetFeedbackDialog();
     }
+
+    const handleAdditionalCommentsChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+        setAdditionalComments(event.target.value);
+    };
 
     const resetFeedbackDialog = () => {
         setIsFeedbackDialogOpen(false);
@@ -159,9 +169,14 @@ export const Answer = ({
                 <Checkbox label="References are inaccurate" id={Feedback.WrongCitation} defaultChecked={negativeFeedbackList.includes(Feedback.WrongCitation)} onChange={updateFeedbackList}></Checkbox>
                 <Checkbox label="Response expected but not generated" id={Feedback.ResponseExpectedButNotGenerated} defaultChecked={negativeFeedbackList.includes(Feedback.ResponseExpectedButNotGenerated)} onChange={updateFeedbackList}></Checkbox>
             </Stack>
-            <textarea
-                id="additionalComments"
-                placeholder="Enter additional comments..."
+            <input
+              ref={additionalCommentsInput}
+              className="additional-comments"
+              type="text"
+              name="additional-comments"
+              placeholder="Provide additional comments"
+              value={additionalComments}
+              onChange={handleAdditionalCommentsChange}
             />
             <div onClick={() => setShowReportInappropriateFeedback(true)} style={{ color: "#115EA3", cursor: "pointer"}}>Report inappropriate content</div>
         </>);
