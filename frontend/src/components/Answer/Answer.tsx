@@ -149,7 +149,7 @@ export const Answer = ({
         resetFeedbackDialog();
     }
 
-    const handleAdditionalCommentsChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const handleAdditionalCommentsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setAdditionalComments(event.target.value);
     };
 
