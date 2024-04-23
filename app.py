@@ -5,6 +5,8 @@ import logging
 import uuid
 import time
 from dotenv import load_dotenv
+from openai.types.chat import ChatCompletionChunk
+from openai.types.chat.chat_completion_chunk import ChoiceDelta, Choice
 
 from quart import (
     Blueprint,
@@ -20,6 +22,7 @@ from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
+from backend.llamaindex_layer import get_answer_directly_from_openai
 
 from backend.utils import format_as_ndjson, format_stream_response, generateFilterString, parse_multi_columns, \
     format_non_streaming_response, fetchUserGroups
@@ -625,10 +628,23 @@ async def complete_chat_request(request_body):
 
 async def stream_chat_request(request_body):
     response = await send_chat_request(request_body)
+
     history_metadata = request_body.get("history_metadata", {})
+
+    query = request_body['messages'][-1]['content']
+    response2 = await get_answer_directly_from_openai(query)
 
     async def generate():
         async for completionChunk in response:
+            yield format_stream_response(completionChunk, history_metadata)
+
+        completionChunk = ChatCompletionChunk(id='chatcmpl-8ZB9m2Ubv8FJs3CIb84WvYwqZCHST', choices=[
+            Choice(delta=ChoiceDelta(content="\n***\n", function_call=None, role='assistant', tool_calls=None),
+                   finish_reason=None, index=0, logprobs=None)], created=1703395058, model='gpt-3.5-turbo-0613',
+                                object='chat.completion.chunk', system_fingerprint=None)
+        yield format_stream_response(completionChunk, history_metadata)
+
+        for completionChunk in response2:
             yield format_stream_response(completionChunk, history_metadata)
 
     return generate()
