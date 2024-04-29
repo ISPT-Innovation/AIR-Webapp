@@ -331,6 +331,24 @@ def get_allowed_index_based_on_user_group(user_groups):
     return AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG
 
 
+def get_allowed_indexes_based_on_user_group(user_groups):
+    group_permissions_str = os.getenv('GROUP_PERMISSIONS', '{}')
+    group_permissions = json.loads(group_permissions_str)
+    logging.info(f"GROUP PERMISSIONS:{group_permissions}")
+    allowed_indexes_for_this_user = []
+    for group in user_groups:
+        group_id = group.get('id')
+        if group_id in group_permissions:
+            logging.info(f"Matched {group_id}")
+            group_permission = group_permissions[group_id]
+            logging.info(f"step 1 {group_permission}")
+            _index = group_permission['index']
+            _semanticSearchConfig = group_permission['semanticSearchConfig']
+            logging.info(f"step 2 {_index} {_semanticSearchConfig}")
+            allowed_indexes_for_this_user.append(_index)
+    return allowed_indexes_for_this_user
+
+
 def get_configured_data_source():
     data_source = {}
     search_index, semantic_search_config = AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG  # default
@@ -663,10 +681,11 @@ async def stream_chat_request_using_all_strategies(request_body):
 
 
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body):
+    indexes = ["ispt-air-dev-esg-llamaindex-3"]
     query = request_body['messages'][-1]['content']
     final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
 
-    response, citationsChunk = await get_answer_directly_from_openai(final_query)
+    response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes)
     history_metadata = request_body.get("history_metadata", {})
 
     async def generate():
@@ -680,11 +699,12 @@ async def stream_chat_request_using_custom_llamaindex_based_vector_engine(reques
 async def route_chat_request(request_body):
     query = request_body['messages'][-1]['content']
     if "[STRATEGY1]" in query:
-        print("GOING WITH STRATEGY1")
+        #print("GOING WITH STRATEGY1")
         request_body['messages'][-1]['content'] = request_body['messages'][-1]['content'].replace("[STRATEGY1]", "")
-        print(request_body['messages'][-1]['content'])
+        #print(request_body['messages'][-1]['content'])
         return await stream_chat_request(request_body)
     return await stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body)
+
 
 async def conversation_internal(request_body):
     try:
@@ -1104,3 +1124,5 @@ async def generate_title(conversation_messages):
 
 app = create_app()
 print("testing testing")
+
+

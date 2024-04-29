@@ -27,8 +27,8 @@ azure_openai_endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
 aoai_api_version = os.environ["AZURE_OPENAI_VERSION"]
 search_service_endpoint = os.environ["AI_SEARCH_ENDPOINT"]
 search_service_api_key = os.environ["AI_SEARCH_KEY"]
-AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
-AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
+AZURE_OPENAI_TEMPERATURE = float(os.environ.get("AZURE_OPENAI_TEMPERATURE", 0))
+AZURE_OPENAI_TOP_P = float(os.environ.get("AZURE_OPENAI_TOP_P", 1.0))
 
 llm = AzureOpenAI(
     model=os.environ["LLM_MODEL_NAME"],
@@ -140,7 +140,106 @@ class CustomVectorIndexRetriever(BaseRetriever):
             context_nodes.append(node)
             current_size += node.metadata['size']
 
-        print(len(context_nodes), current_size)
+        #print(len(context_nodes), current_size)
+
+        return retrieved_nodes
+
+
+class CustomVectorIndexRetriever2(BaseRetriever):
+
+    def __init__(
+            self,
+            index_names,
+            llm,
+            filter_threshold=0.015,
+            reranker=False,
+            reranker_top_n=5,
+            vector_top_k=10
+    ) -> None:
+        """Init params."""
+
+        self.search_indexes = [self.get_search_index(index_name) for index_name in index_names]
+        self.filter_threshold = filter_threshold
+        self.reranker = reranker
+        self.llm = llm
+        self.vector_top_k = vector_top_k
+        self.filter_threshold = filter_threshold
+        self.reranker_top_n = reranker_top_n
+
+        super().__init__()
+
+    def get_vector_store(self, search_index_name):
+        credential = AzureKeyCredential(search_service_api_key)
+        index_client = SearchIndexClient(
+            endpoint=search_service_endpoint,
+            credential=credential,
+        )
+
+        metadata_fields = {
+            "filename": "filename",
+            "level": ("level", MetadataIndexFieldType.INT32),
+            "parent_id": ("parent_id", MetadataIndexFieldType.STRING),
+            "url": ("url", MetadataIndexFieldType.STRING)
+        }
+        vector_store = AzureAISearchVectorStore(
+            search_or_index_client=index_client,
+            filterable_metadata_field_keys=metadata_fields,
+            index_name=search_index_name,
+            index_management=IndexManagement.CREATE_IF_NOT_EXISTS,
+            id_field_key="id",
+            chunk_field_key="chunk",
+            embedding_field_key="embedding",
+            embedding_dimensionality=1536,
+            metadata_string_field_key="metadata",
+            doc_id_field_key="doc_id",
+            language_analyzer="en.lucene",
+            vector_algorithm_type="exhaustiveKnn",
+        )
+        return vector_store
+
+    def get_search_index(self, SEARCH_INDEX_NAME):
+        vector_store = self.get_vector_store(SEARCH_INDEX_NAME)
+        storage_context = StorageContext.from_defaults(vector_store=vector_store)
+        search_index = VectorStoreIndex.from_documents(
+            [], storage_context=storage_context
+        )
+        return search_index
+
+    def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
+        """Retrieve nodes given query."""
+        all_retrieved_nodes = []
+        for search_index in self.search_indexes:
+            retriever = VectorIndexRetriever(
+                index=search_index,
+                similarity_top_k=self.vector_top_k,
+                vector_store_query_mode=VectorStoreQueryMode.HYBRID
+            )
+            retrieved_nodes = retriever.retrieve(query_bundle)
+            all_retrieved_nodes.extend(retrieved_nodes)
+
+        retrieved_nodes = [node for node in all_retrieved_nodes if node.score > self.filter_threshold]
+
+        retrieved_nodes = sorted(retrieved_nodes, key=lambda x: x.score, reverse=True)
+
+        if self.reranker:
+            reranker = RankGPTRerank(
+                llm=self.llm,
+                top_n=self.reranker_top_n,
+                verbose=True,
+            )
+            retrieved_nodes = reranker.postprocess_nodes(
+                retrieved_nodes, query_bundle
+            )
+
+        context_nodes = []
+        current_size = 0
+        for node in retrieved_nodes:
+            if current_size + node.metadata['size'] > 10000:
+                break
+            context_nodes.append(node)
+            current_size += node.metadata['size']
+
+        #print(len(context_nodes), current_size)
 
         return retrieved_nodes
 
@@ -162,11 +261,11 @@ def get_chat_engine(custom_query_engine, custom_chat_history):
     return chat_engine
 
 
-async def get_answer_directly_from_openai(query):
-    retriever = CustomVectorIndexRetriever("ispt-air-dev-esg-llamaindex-3", Settings.llm)
+async def get_answer_directly_from_openai(query, indexes):
+    retriever = CustomVectorIndexRetriever2(indexes, Settings.llm)
     nodes = retriever.retrieve(query)
     context = "\n\n".join([f"doc{index + 1}:" + '\n' + node.get_content() for index, node in enumerate(nodes)])
-    print(context)
+    #print(context)
     import openai
     llm = openai.AzureOpenAI(
         api_key=azure_openai_key,
@@ -293,11 +392,11 @@ def get_final_question_based_on_history(history, latest_message):
     )
 
     final_query = response.choices[0].message.content
-    print(f"FINAL QUERY : {final_query}")
+    #print(f"FINAL QUERY : {final_query}")
     return final_query
 
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(get_answer_directly_from_openai("What is the NLA for IRAPT in 2022?"))
+    asyncio.run(get_answer_directly_from_openai("What is the NLA for IRAPT in 2022?", ["ispt-air-dev-esg-llamaindex-3"]))
