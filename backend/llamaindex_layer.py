@@ -27,6 +27,8 @@ azure_openai_endpoint = os.environ["AZURE_OPENAI_ENDPOINT"]
 aoai_api_version = os.environ["AZURE_OPENAI_VERSION"]
 search_service_endpoint = os.environ["AI_SEARCH_ENDPOINT"]
 search_service_api_key = os.environ["AI_SEARCH_KEY"]
+AZURE_OPENAI_TEMPERATURE = os.environ.get("AZURE_OPENAI_TEMPERATURE", 0)
+AZURE_OPENAI_TOP_P = os.environ.get("AZURE_OPENAI_TOP_P", 1.0)
 
 llm = AzureOpenAI(
     model=os.environ["LLM_MODEL_NAME"],
@@ -184,7 +186,9 @@ async def get_answer_directly_from_openai(query):
             {"role": "assistant", "content": "What is your query?"},
             {"role": "user", "content": query},
         ],
-        stream=True
+        stream=True,
+        top_p=AZURE_OPENAI_TOP_P,
+        temperature=AZURE_OPENAI_TEMPERATURE
     )
 
     citationsChunk = get_citations(nodes)
