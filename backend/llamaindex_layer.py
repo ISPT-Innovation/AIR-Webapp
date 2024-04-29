@@ -15,6 +15,8 @@ from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
 from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.vector_stores.azureaisearch import IndexManagement, AzureAISearchVectorStore, MetadataIndexFieldType
 from llama_index_client import MessageRole, ChatMessage
+from openai.types.chat.chat_completion_chunk import ChoiceDelta, Choice, ChatCompletionChunk
+from llama_index.core.chat_engine import CondenseQuestionChatEngine
 
 load_dotenv()
 
@@ -161,8 +163,8 @@ def get_chat_engine(custom_query_engine, custom_chat_history):
 async def get_answer_directly_from_openai(query):
     retriever = CustomVectorIndexRetriever("ispt-air-dev-esg-llamaindex-3", Settings.llm)
     nodes = retriever.retrieve(query)
-    context = "\n\n".join([node.get_content() for node in nodes])
-    #print(context)
+    context = "\n\n".join([f"doc{index + 1}:" + '\n' + node.get_content() for index, node in enumerate(nodes)])
+    print(context)
     import openai
     llm = openai.AzureOpenAI(
         api_key=azure_openai_key,
@@ -175,14 +177,120 @@ async def get_answer_directly_from_openai(query):
         messages=[
             {"role": "system",
              "content": "You are a representative of ISPT, a property fund company. You need to respond to questions with the context provided as a first person."},
-            {"role": "system", "content": "What is the context?"},
+            {"role": "system",
+             "content": "Always cite the sources using the doc number inside square brackets. For example [doc1], [doc2]"},
+            {"role": "assistant", "content": "What is the context?"},
             {"role": "user", "content": f"The context is {context} "},
-            {"role": "system", "content": "What is your query?"},
-            {"role": "system", "content": query},
+            {"role": "assistant", "content": "What is your query?"},
+            {"role": "user", "content": query},
         ],
         stream=True
     )
-    return response
+
+    citationsChunk = get_citations(nodes)
+    return response, citationsChunk
+
+
+def get_citations(nodes):
+    citation_choices = []
+
+    for k in nodes:
+        x = {
+            'content': k.text,
+            'title': k.metadata['filename'],
+            'url': k.metadata['url'],
+            'filepath': k.id_,
+            'chunk_id': '0',
+            'metadata': k.metadata
+        }
+        citation_choices.append(x)
+    import json
+    context = {
+        'messages': [
+            {
+                'role': 'tool',
+                'end_turn': False,
+                'content': json.dumps({'citations': citation_choices, 'strategy': "STRATEGY1"})
+            }
+        ]
+    }
+    c = Choice(delta=ChoiceDelta(content=None,
+                                 function_call=None,
+                                 role='assistant',
+                                 tool_calls=None,
+                                 context=context),
+               finish_reason=None,
+               index=0,
+               logprobs=None
+               )
+    completionChunk = ChatCompletionChunk(id='chatcmpl-8ZB9m2Ubv8FJs3CIb84WvYwqZCHST',
+                                          choices=[c],
+                                          created=1703395058,
+                                          model='gpt-3.5-turbo-0613',
+                                          object='chat.completion.chunk',
+                                          system_fingerprint=None)
+
+    return completionChunk
+
+
+custom_prompt = PromptTemplate(
+    """\
+Given a conversation (between Human and Assistant) and a follow up message from Human, \
+rewrite the message to be a standalone question that captures all relevant context \
+from the conversation.
+
+<Chat History>
+{chat_history}
+
+<Follow Up Message>
+{question}
+
+<Standalone question>
+"""
+)
+
+
+def get_final_question_based_on_history(history, latest_message):
+    if len(history) == 0:
+        return latest_message
+    string_messages = []
+    for k in history:
+        if k['role'] in ['user', 'assistant']:
+            string_message = f"{k['role']}: {k['content']}"
+            string_messages.append(string_message)
+    history_str = "\n".join(string_messages)
+
+    custom_prompt = f"""\
+    Given a conversation (between Human and Assistant) and a follow up message from Human, \
+    rewrite the message to be a standalone question that captures all relevant context \
+    from the conversation.
+
+    <Chat History>
+    {history_str}
+
+    <Follow Up Message>
+    {latest_message}
+
+    <Standalone question>
+    """
+
+    import openai
+    llm = openai.AzureOpenAI(
+        api_key=azure_openai_key,
+        azure_endpoint=azure_openai_endpoint,
+        api_version=aoai_api_version,
+    )
+    response = llm.chat.completions.create(
+        model=os.environ["AZURE_LLM_MODEL_DEPLOYMENT_NAME"],  # model = "deployment_name".
+        messages=[
+
+            {"role": "user", "content": f"{custom_prompt} "},
+        ],
+    )
+
+    final_query = response.choices[0].message.content
+    print(f"FINAL QUERY : {final_query}")
+    return final_query
 
 
 if __name__ == "__main__":

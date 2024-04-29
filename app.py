@@ -22,7 +22,7 @@ from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
 from backend.history.cosmosdbservice import CosmosConversationClient
-from backend.llamaindex_layer import get_answer_directly_from_openai
+from backend.llamaindex_layer import get_answer_directly_from_openai, get_final_question_based_on_history
 
 from backend.utils import format_as_ndjson, format_stream_response, generateFilterString, parse_multi_columns, \
     format_non_streaming_response, fetchUserGroups
@@ -550,7 +550,7 @@ def get_configured_data_source():
 def prepare_model_args(request_body):
     request_messages = request_body.get("messages", [])
     messages = []
-    #if not SHOULD_USE_DATA:
+    # if not SHOULD_USE_DATA:
     messages = [
         {
             "role": "system",
@@ -631,8 +631,20 @@ async def stream_chat_request(request_body):
 
     history_metadata = request_body.get("history_metadata", {})
 
+    async def generate():
+        async for completionChunk in response:
+            yield format_stream_response(completionChunk, history_metadata)
+
+    return generate()
+
+
+async def stream_chat_request_using_all_strategies(request_body):
+    response = await send_chat_request(request_body)
+
+    history_metadata = request_body.get("history_metadata", {})
+
     query = request_body['messages'][-1]['content']
-    response2 = await get_answer_directly_from_openai(query)
+    response2, strategy2citationsChunk = await get_answer_directly_from_openai(query)
 
     async def generate():
         async for completionChunk in response:
@@ -641,7 +653,7 @@ async def stream_chat_request(request_body):
         completionChunk = ChatCompletionChunk(id='chatcmpl-8ZB9m2Ubv8FJs3CIb84WvYwqZCHST', choices=[
             Choice(delta=ChoiceDelta(content="\n***\n", function_call=None, role='assistant', tool_calls=None),
                    finish_reason=None, index=0, logprobs=None)], created=1703395058, model='gpt-3.5-turbo-0613',
-                                object='chat.completion.chunk', system_fingerprint=None)
+                                              object='chat.completion.chunk', system_fingerprint=None)
         yield format_stream_response(completionChunk, history_metadata)
 
         for completionChunk in response2:
@@ -650,11 +662,35 @@ async def stream_chat_request(request_body):
     return generate()
 
 
+async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body):
+    query = request_body['messages'][-1]['content']
+    final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
+
+    response, citationsChunk = await get_answer_directly_from_openai(final_query)
+    history_metadata = request_body.get("history_metadata", {})
+
+    async def generate():
+        yield format_stream_response(citationsChunk, history_metadata)
+        for completionChunk in response:
+            yield format_stream_response(completionChunk, history_metadata)
+
+    return generate()
+
+
+async def route_chat_request(request_body):
+    query = request_body['messages'][-1]['content']
+    if "[STRATEGY1]" in query:
+        print("GOING WITH STRATEGY1")
+        request_body['messages'][-1]['content'] = request_body['messages'][-1]['content'].replace("[STRATEGY1]", "")
+        print(request_body['messages'][-1]['content'])
+        return await stream_chat_request(request_body)
+    return await stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body)
+
 async def conversation_internal(request_body):
     try:
         if SHOULD_STREAM:
             start_time = time.time()
-            result = await stream_chat_request(request_body)
+            result = await route_chat_request(request_body)
             response = await make_response(format_as_ndjson(result))
             end_time = time.time()
             time_taken = round(end_time - start_time, 2)
@@ -822,7 +858,7 @@ async def update_message():
                             "message_id": message_id}), 200
         else:
             return jsonify({
-                               "error": f"Unable to update message {message_id}. It either does not exist or the user does not have access to it."}), 404
+                "error": f"Unable to update message {message_id}. It either does not exist or the user does not have access to it."}), 404
 
     except Exception as e:
         logging.exception("Exception in /history/message_feedback")
@@ -907,7 +943,7 @@ async def get_conversation():
     ## return the conversation id and the messages in the bot frontend format
     if not conversation:
         return jsonify({
-                           "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
+            "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
 
     # get the messages for the conversation from cosmos
     conversation_messages = await cosmos_conversation_client.get_messages(user_id, conversation_id)
@@ -941,7 +977,7 @@ async def rename_conversation():
     conversation = await cosmos_conversation_client.get_conversation(user_id, conversation_id)
     if not conversation:
         return jsonify({
-                           "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
+            "error": f"Conversation {conversation_id} was not found. It either does not exist or the logged in user does not have access to it."}), 404
 
     ## update the title
     title = request_json.get("title", None)
