@@ -349,6 +349,19 @@ def get_allowed_indexes_based_on_user_group(user_groups):
     return allowed_indexes_for_this_user
 
 
+def get_allowed_indexes_based_on_user_token():
+    try:
+        userToken = request.headers.get('X-MS-TOKEN-AAD-ACCESS-TOKEN', "")
+        userGroups = fetchUserGroups(userToken)
+        logging.info(f"USER GROUPS:{userGroups}")
+        allowed_indexes_for_this_user = get_allowed_indexes_based_on_user_group(userGroups)
+        logging.info(f"ALLOWED INDEXES: {allowed_indexes_for_this_user}")
+        return allowed_indexes_for_this_user
+    except:
+        logging.exception("Exception in extracting user groups")
+
+    return []
+
 def get_configured_data_source():
     data_source = {}
     search_index, semantic_search_config = AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG  # default
@@ -681,7 +694,10 @@ async def stream_chat_request_using_all_strategies(request_body):
 
 
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body):
-    indexes = ["ispt-air-dev-esg-llamaindex-3"]
+    indexes = get_allowed_indexes_based_on_user_token()
+    print("INDEXES:", indexes)
+    indexes = ["ispt-air-dev-hth-llamaindex-3"]
+    # TODO: what if indexes are empty ?
     query = request_body['messages'][-1]['content']
     final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
 

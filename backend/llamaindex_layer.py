@@ -154,7 +154,7 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             filter_threshold=0.015,
             reranker=False,
             reranker_top_n=5,
-            vector_top_k=10
+            vector_top_k=20
     ) -> None:
         """Init params."""
 
@@ -217,6 +217,7 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             retrieved_nodes = retriever.retrieve(query_bundle)
             all_retrieved_nodes.extend(retrieved_nodes)
 
+
         retrieved_nodes = [node for node in all_retrieved_nodes if node.score > self.filter_threshold]
 
         retrieved_nodes = sorted(retrieved_nodes, key=lambda x: x.score, reverse=True)
@@ -241,7 +242,7 @@ class CustomVectorIndexRetriever2(BaseRetriever):
 
         #print(len(context_nodes), current_size)
 
-        return retrieved_nodes
+        return context_nodes
 
 
 def get_query_engine(retriever, response_synthesizer):
@@ -295,6 +296,7 @@ async def get_answer_directly_from_openai(query, indexes):
 
 
 def get_citations(nodes):
+
     citation_choices = []
 
     for k in nodes:
@@ -399,4 +401,4 @@ def get_final_question_based_on_history(history, latest_message):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(get_answer_directly_from_openai("What is the NLA for IRAPT in 2022?", ["ispt-air-dev-esg-llamaindex-3"]))
+    asyncio.run(get_answer_directly_from_openai("What is UNSW rent rate?", ["ispt-air-dev-hth-llamaindex-3"]))
