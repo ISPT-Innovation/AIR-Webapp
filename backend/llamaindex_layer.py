@@ -115,7 +115,7 @@ class CustomVectorIndexRetriever(BaseRetriever):
         retriever = VectorIndexRetriever(
             index=self.search_index,
             similarity_top_k=self.vector_top_k,
-            vector_store_query_mode=VectorStoreQueryMode.HYBRID
+            vector_store_query_mode=VectorStoreQueryMode.SEMANTIC_HYBRID
         )
 
         retrieved_nodes = retriever.retrieve(query_bundle)
@@ -153,7 +153,7 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             llm,
             filter_threshold=0.015,
             reranker=False,
-            reranker_top_n=5,
+            reranker_top_n=10,
             vector_top_k=20
     ) -> None:
         """Init params."""
@@ -280,6 +280,8 @@ async def get_answer_directly_from_openai(query, indexes):
             {"role": "system",
              "content": "You are a representative of ISPT, a property fund company. You need to respond to questions with the context provided as a first person."},
             {"role": "system",
+             "content": "Whenever the answer is numerical, make sure that it is exactly as it is in source documents.   If a table contains information about two dates, extract information for each date and then answer the question.     If the user requests data for a specific date, Check if exact date match is found, if not, use exact month or exact year. To give clarity for your answer, please provide your chain of thought, clearly explaining step by step how you arrived at the answer."},
+            {"role": "system",
              "content": "Always cite the sources using the doc number inside square brackets. For example [doc1], [doc2]"},
             {"role": "assistant", "content": "What is the context?"},
             {"role": "user", "content": f"The context is {context} "},
@@ -292,6 +294,13 @@ async def get_answer_directly_from_openai(query, indexes):
     )
 
     citationsChunk = get_citations(nodes)
+    #responseText = ""
+    # for k in response:
+    #     try:
+    #         responseText += k.choices[0].delta.content
+    #     except:
+    #         pass
+    # print(responseText)
     return response, citationsChunk
 
 
@@ -401,4 +410,4 @@ def get_final_question_based_on_history(history, latest_message):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(get_answer_directly_from_openai("What is UNSW rent rate?", ["ispt-air-dev-hth-llamaindex-3"]))
+    asyncio.run(get_answer_directly_from_openai("Who is the tenant of Green Square - North Tower, Brisbane QLD as of December 2019 and give details about the tenancy?", ["ispt-air-dev-ir-llamaindex-3"]))

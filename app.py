@@ -696,7 +696,7 @@ async def stream_chat_request_using_all_strategies(request_body):
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body):
     indexes = get_allowed_indexes_based_on_user_token()
     print("INDEXES:", indexes)
-    indexes = ["ispt-air-dev-hth-llamaindex-3"]
+    indexes = ["ispt-air-dev-ir-llamaindex-3"]
     # TODO: what if indexes are empty ?
     query = request_body['messages'][-1]['content']
     final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
