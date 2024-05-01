@@ -21,8 +21,9 @@ from quart import (
 from openai import AsyncAzureOpenAI
 from azure.identity.aio import DefaultAzureCredential, get_bearer_token_provider
 from backend.auth.auth_utils import get_authenticated_user_details
+from backend.azure_search_layer import get_answer_directly_from_openai
 from backend.history.cosmosdbservice import CosmosConversationClient
-from backend.llamaindex_layer import get_answer_directly_from_openai, get_final_question_based_on_history
+from backend.llamaindex_layer import get_final_question_based_on_history
 
 from backend.utils import format_as_ndjson, format_stream_response, generateFilterString, parse_multi_columns, \
     format_non_streaming_response, fetchUserGroups
@@ -696,7 +697,7 @@ async def stream_chat_request_using_all_strategies(request_body):
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body):
     indexes = get_allowed_indexes_based_on_user_token()
     print("INDEXES:", indexes)
-    indexes = ["ispt-air-dev-ir-llamaindex-3"]
+    indexes = ["ispt-air-dev-ir-llamaindex-4"]
     # TODO: what if indexes are empty ?
     query = request_body['messages'][-1]['content']
     final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
