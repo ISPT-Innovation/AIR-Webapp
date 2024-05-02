@@ -9,15 +9,19 @@ type ParsedAnswer = {
 
 export function parseAnswer(answer: AskResponse): ParsedAnswer {
     let answerText = answer.answer;
-    const citationLinks = answerText.match(/\[(doc\d\d?\d?)]/g);
-
-    const lengthDocN = "[doc".length;
+    //const citationLinks = answerText.match(/\[(doc\d\d?\d?)]/g);
+    const citationLinks = answerText.match(/(doc\d\d?\d?)/g);
+    console.log(citationLinks);
+    //const lengthDocN = "[doc".length;
+    const lengthDocN = "doc".length;
 
     let filteredCitations = [] as Citation[];
     let citationReindex = 0;
     citationLinks?.forEach(link => {
         // Replacing the links/citations with number
-        let citationIndex = link.slice(lengthDocN, link.length - 1);
+        console.log(link)
+        let citationIndex = link.slice(lengthDocN, link.length);
+        console.log(citationIndex)
         let citation = cloneDeep(answer.citations[Number(citationIndex) - 1]) as Citation;
         if (!filteredCitations.find((c) => c.id === citationIndex) && citation) {
           answerText = answerText.replaceAll(link, ` ^${++citationReindex}^ `);

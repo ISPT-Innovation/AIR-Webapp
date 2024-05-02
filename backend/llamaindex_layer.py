@@ -58,7 +58,7 @@ class CustomVectorIndexRetriever(BaseRetriever):
             filter_threshold=0.015,
             reranker=False,
             reranker_top_n=5,
-            vector_top_k=10
+            vector_top_k=20
     ) -> None:
         """Init params."""
 
@@ -154,7 +154,7 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             filter_threshold=0.015,
             reranker=False,
             reranker_top_n=5,
-            vector_top_k=10
+            vector_top_k=20
     ) -> None:
         """Init params."""
 
