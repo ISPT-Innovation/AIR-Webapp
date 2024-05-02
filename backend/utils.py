@@ -164,6 +164,7 @@ def generate_sas_url(messageObj):
 
     for citation in citations:
         if citation['url']:
+            print(citation['url'])
             blob_name=parse.unquote(citation['url'].split(f'core.windows.net/{CONTAINER_NAME}/')[1])
             print(f'BLOB NAME IS {blob_name}')
             sas_token = generate_blob_sas(account_name=STORAGE_ACCOUNT_NAME,
