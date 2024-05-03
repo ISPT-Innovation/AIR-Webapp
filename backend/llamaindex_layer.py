@@ -8,7 +8,7 @@ from llama_index.core.chat_engine import CondenseQuestionChatEngine
 from llama_index.core.indices.vector_store import VectorIndexRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 from llama_index.core.response_synthesizers import Refine, Accumulate
-from llama_index.core.schema import NodeWithScore
+from llama_index.core.schema import NodeWithScore, MetadataMode
 from llama_index.core.postprocessor.rankGPT_rerank import RankGPTRerank
 from llama_index.core.vector_stores.types import VectorStoreQueryMode
 from llama_index.embeddings.azure_openai import AzureOpenAIEmbedding
@@ -121,7 +121,10 @@ class CustomVectorIndexRetriever(BaseRetriever):
         retrieved_nodes = retriever.retrieve(query_bundle)
 
         retrieved_nodes = [node for node in retrieved_nodes if node.score > self.filter_threshold]
+        retrieved_nodes = [node for node in retrieved_nodes if ".xls" not in node.metadata['filename']]
 
+        for node in retrieved_nodes:
+            print(node.metadata['filename'])
         if self.reranker:
             reranker = RankGPTRerank(
                 llm=self.llm,
@@ -135,12 +138,12 @@ class CustomVectorIndexRetriever(BaseRetriever):
         context_nodes = []
         current_size = 0
         for node in retrieved_nodes:
-            if current_size + node.metadata['size'] > 10000:
+            if current_size + node.metadata['size'] > 5000:
                 break
             context_nodes.append(node)
             current_size += node.metadata['size']
 
-        #print(len(context_nodes), current_size)
+        # print(len(context_nodes), current_size)
 
         return retrieved_nodes
 
@@ -154,7 +157,9 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             filter_threshold=0.015,
             reranker=False,
             reranker_top_n=5,
-            vector_top_k=20
+            vector_top_k=20,
+            date_context_matching_enabled=False,
+            no_excel=False
     ) -> None:
         """Init params."""
 
@@ -165,7 +170,8 @@ class CustomVectorIndexRetriever2(BaseRetriever):
         self.vector_top_k = vector_top_k
         self.filter_threshold = filter_threshold
         self.reranker_top_n = reranker_top_n
-
+        self.date_context_matching_enabled = date_context_matching_enabled
+        self.no_excel = no_excel
         super().__init__()
 
     def get_vector_store(self, search_index_name):
@@ -217,8 +223,12 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             retrieved_nodes = retriever.retrieve(query_bundle)
             all_retrieved_nodes.extend(retrieved_nodes)
 
-
         retrieved_nodes = [node for node in all_retrieved_nodes if node.score > self.filter_threshold]
+        if self.no_excel:
+            retrieved_nodes = [node for node in retrieved_nodes if ".xls" not in node.metadata['filename']]
+
+        for node in retrieved_nodes:
+            print(node.metadata['filename'])
 
         retrieved_nodes = sorted(retrieved_nodes, key=lambda x: x.score, reverse=True)
 
@@ -235,14 +245,69 @@ class CustomVectorIndexRetriever2(BaseRetriever):
         context_nodes = []
         current_size = 0
         for node in retrieved_nodes:
-            if current_size + node.metadata['size'] > 10000:
-                break
-            context_nodes.append(node)
-            current_size += node.metadata['size']
+            if self.date_context_matching_enabled:
+                if is_node_relevant_temporally(query_bundle.query_str, node):
+                    print(f"Node {node.metadata['filename']} is  relevant")
+                    if current_size + node.metadata['size'] > 5000:
+                        break
+                    context_nodes.append(node)
+                    current_size += node.metadata['size']
+                else:
+                    print(f"Node {node.metadata['filename']} is not relevant")
 
-        #print(len(context_nodes), current_size)
+            else:
+                if current_size + node.metadata['size'] > 10000:
+                    break
+                context_nodes.append(node)
+                current_size += node.metadata['size']
+
+        print(len(context_nodes), current_size)
 
         return context_nodes
+
+
+def is_node_relevant_temporally(query, node):
+    print("****" * 10)
+    print("Checking relevancy of dates.")
+    filename = " ".join(node.metadata['filename'].split("."))
+    custom_prompt = f"""\
+       You will be given a context and a query,
+       Extract any temporal information (dates, years, months) from the query.
+       Extract any temporal information (dates, years, months) from the context.
+       Return TRUE if the context is relevant to the query based on the temporal information extracted.
+       Return FALSE if not.
+       Return FALSE if the years in the context and years in the query have zero match. 
+       Return FALSE if there is a temporal mismatch even if the context is relevant otherwise.
+       REPLY IN TRUE OR FALSE followed by your chain of thought.
+      
+       <Context>
+       {filename}
+       
+       {node.text}
+
+       <query>
+       {query}
+       """
+    print(custom_prompt)
+
+    import openai
+    llm = openai.AzureOpenAI(
+        api_key=azure_openai_key,
+        azure_endpoint=azure_openai_endpoint,
+        api_version=aoai_api_version,
+    )
+    response = llm.chat.completions.create(
+        model=os.environ["AZURE_LLM_MODEL_DEPLOYMENT_NAME"],  # model = "deployment_name".
+        messages=[
+
+            {"role": "user", "content": f"{custom_prompt} "},
+        ],
+    )
+
+    response = response.choices[0].message.content
+    print(f"FINAL QUERY : {response}")
+    print("---" * 100)
+    return response.lower().startswith("true") and ("FALSE" not in response)
 
 
 def get_query_engine(retriever, response_synthesizer):
@@ -262,11 +327,14 @@ def get_chat_engine(custom_query_engine, custom_chat_history):
     return chat_engine
 
 
-async def get_answer_directly_from_openai(query, indexes):
-    retriever = CustomVectorIndexRetriever2(indexes, Settings.llm)
+async def get_answer_directly_from_openai(query, indexes, no_excel, date_match, top_k):
+    retriever = CustomVectorIndexRetriever2(indexes, Settings.llm, vector_top_k=top_k,
+                                            date_context_matching_enabled=date_match, no_excel=no_excel)
     nodes = retriever.retrieve(query)
-    context = "\n\n".join([f"doc{index + 1}:" + '\n' + node.get_content() for index, node in enumerate(nodes)])
-    #print(context)
+    context = "\n\n".join(
+        [f"doc{index + 1}:" + '\n' + node.get_content(metadata_mode=MetadataMode.EMBED) for index, node in
+         enumerate(nodes)])
+    # print(context)
     import openai
     llm = openai.AzureOpenAI(
         api_key=azure_openai_key,
@@ -296,7 +364,6 @@ async def get_answer_directly_from_openai(query, indexes):
 
 
 def get_citations(nodes):
-
     citation_choices = []
 
     for k in nodes:
@@ -356,6 +423,8 @@ from the conversation.
 
 
 def get_final_question_based_on_history(history, latest_message):
+    latest_message = latest_message.replace("[NO_EXCEL]", "")
+    latest_message = latest_message.replace("[DATE_MATCH]", "")
     if len(history) == 0:
         return latest_message
     string_messages = []
@@ -394,11 +463,12 @@ def get_final_question_based_on_history(history, latest_message):
     )
 
     final_query = response.choices[0].message.content
-    #print(f"FINAL QUERY : {final_query}")
+    # print(f"FINAL QUERY : {final_query}")
     return final_query
 
 
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(get_answer_directly_from_openai("What is UNSW rent rate?", ["ispt-air-dev-hth-llamaindex-3"]))
+    asyncio.run(get_answer_directly_from_openai("summarize the market commentary from the 8 lakeside drive valuation report  ",
+                                                ["ispt-air-dev-fm-llamaindex-5"], True, False, 20))

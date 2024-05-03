@@ -693,7 +693,7 @@ async def stream_chat_request_using_all_strategies(request_body):
     return generate()
 
 
-async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body):
+async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match, top_k):
     indexes = get_allowed_indexes_based_on_user_token()
     print("INDEXES:", indexes)
     indexes = [AZURE_SEARCH_INDEX] #change this after deciding on multiple indexes
@@ -701,7 +701,7 @@ async def stream_chat_request_using_custom_llamaindex_based_vector_engine(reques
     query = request_body['messages'][-1]['content']
     final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
 
-    response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes)
+    response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes, no_excel, date_match, top_k)
     history_metadata = request_body.get("history_metadata", {})
 
     async def generate():
@@ -719,7 +719,15 @@ async def route_chat_request(request_body):
         request_body['messages'][-1]['content'] = request_body['messages'][-1]['content'].replace("[STRATEGY1]", "")
         #print(request_body['messages'][-1]['content'])
         return await stream_chat_request(request_body)
-    return await stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body)
+    no_excel = False
+    date_match = False
+    top_k = 20
+    if "[NO_EXCEL]" in query:
+        no_excel = True
+    if "[DATE_MATCH]" in query:
+        date_match = True
+        top_k = 30
+    return await stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match, top_k)
 
 
 async def conversation_internal(request_body):
