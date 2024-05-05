@@ -695,18 +695,38 @@ async def stream_chat_request_using_all_strategies(request_body):
 
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match, top_k):
     indexes = get_allowed_indexes_based_on_user_token()
-    print("INDEXES:", indexes)
-    indexes = [AZURE_SEARCH_INDEX] #change this after deciding on multiple indexes
-    # TODO: what if indexes are empty ?
-    query = request_body['messages'][-1]['content']
-    final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
-
-    response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes, no_excel, date_match, top_k)
+    #indexes = ["ispt-air-dev-hth-llamaindex-3"]
     history_metadata = request_body.get("history_metadata", {})
+    if indexes:
+        indexes = [indexes[0]]
+        logging.info("INDEXES:", indexes)
+        query = request_body['messages'][-1]['content']
+        final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
 
-    async def generate():
-        yield format_stream_response(citationsChunk, history_metadata)
-        for completionChunk in response:
+        response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes, no_excel, date_match, top_k)
+
+
+        async def generate():
+            yield format_stream_response(citationsChunk, history_metadata)
+            for completionChunk in response:
+                yield format_stream_response(completionChunk, history_metadata)
+    else:
+
+        async def generate():
+            c = Choice(delta=ChoiceDelta(content="You don't have access to any indexes. Please contact the Admin.",
+                                         function_call=None,
+                                         role='assistant',
+                                         tool_calls=None),
+                       finish_reason=None,
+                       index=0,
+                       logprobs=None
+                       )
+            completionChunk = ChatCompletionChunk(id='chatcmpl-8ZB9m2Ubv8FJs3CIb84WvYwqZCHST',
+                                                  choices=[c],
+                                                  created=1703395058,
+                                                  model='gpt-3.5-turbo-0613',
+                                                  object='chat.completion.chunk',
+                                                  system_fingerprint=None)
             yield format_stream_response(completionChunk, history_metadata)
 
     return generate()
