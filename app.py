@@ -669,29 +669,6 @@ async def stream_chat_request(request_body):
     return generate()
 
 
-async def stream_chat_request_using_all_strategies(request_body):
-    response = await send_chat_request(request_body)
-
-    history_metadata = request_body.get("history_metadata", {})
-
-    query = request_body['messages'][-1]['content']
-    response2, strategy2citationsChunk = await get_answer_directly_from_openai(query)
-
-    async def generate():
-        async for completionChunk in response:
-            yield format_stream_response(completionChunk, history_metadata)
-
-        completionChunk = ChatCompletionChunk(id='chatcmpl-8ZB9m2Ubv8FJs3CIb84WvYwqZCHST', choices=[
-            Choice(delta=ChoiceDelta(content="\n***\n", function_call=None, role='assistant', tool_calls=None),
-                   finish_reason=None, index=0, logprobs=None)], created=1703395058, model='gpt-3.5-turbo-0613',
-                                              object='chat.completion.chunk', system_fingerprint=None)
-        yield format_stream_response(completionChunk, history_metadata)
-
-        for completionChunk in response2:
-            yield format_stream_response(completionChunk, history_metadata)
-
-    return generate()
-
 
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match, top_k):
     indexes = get_allowed_indexes_based_on_user_token()

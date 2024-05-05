@@ -256,12 +256,12 @@ class CustomVectorIndexRetriever2(BaseRetriever):
                     print(f"Node {node.metadata['filename']} is not relevant")
 
             else:
-                if current_size + node.metadata['size'] > 10000:
+                if current_size + node.metadata['size'] > 5000:
                     break
                 context_nodes.append(node)
                 current_size += node.metadata['size']
 
-        print(len(context_nodes), current_size)
+        print("FINAL SIZE:", len(context_nodes), current_size)
 
         return context_nodes
 
@@ -346,7 +346,7 @@ async def get_answer_directly_from_openai(query, indexes, no_excel, date_match, 
         model=os.environ["AZURE_LLM_MODEL_DEPLOYMENT_NAME"],  # model = "deployment_name".
         messages=[
             {"role": "system",
-             "content": "You are a representative of ISPT, a property fund company. You need to respond to questions with the context provided as a first person."},
+             "content": "You are a representative of ISPT, a property fund company. \nAlways answer the query using the provided context information, and not prior knowledge.\n Always answer in first person."},
             {"role": "system",
              "content": "Always cite the sources using the doc number inside square brackets. For example [doc1], [doc2]"},
             {"role": "assistant", "content": "What is the context?"},
