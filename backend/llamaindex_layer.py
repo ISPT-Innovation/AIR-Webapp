@@ -123,8 +123,11 @@ class CustomVectorIndexRetriever(BaseRetriever):
         retrieved_nodes = [node for node in retrieved_nodes if node.score > self.filter_threshold]
         retrieved_nodes = [node for node in retrieved_nodes if ".xls" not in node.metadata['filename']]
 
+        print("NODES:",retrieved_nodes)
+
         for node in retrieved_nodes:
-            print(node.metadata['filename'])
+            print(">>", node.metadata['filename'], node.score)
+
         if self.reranker:
             reranker = RankGPTRerank(
                 llm=self.llm,
@@ -154,7 +157,7 @@ class CustomVectorIndexRetriever2(BaseRetriever):
             self,
             index_names,
             llm,
-            filter_threshold=0.015,
+            filter_threshold=0.02,
             reranker=False,
             reranker_top_n=5,
             vector_top_k=20,
@@ -227,8 +230,10 @@ class CustomVectorIndexRetriever2(BaseRetriever):
         if self.no_excel:
             retrieved_nodes = [node for node in retrieved_nodes if ".xls" not in node.metadata['filename']]
 
+        print("NODES:", retrieved_nodes)
+
         for node in retrieved_nodes:
-            print(node.metadata['filename'])
+            print(">>", node.metadata['filename'], node.score)
 
         retrieved_nodes = sorted(retrieved_nodes, key=lambda x: x.score, reverse=True)
 
@@ -346,13 +351,17 @@ async def get_answer_directly_from_openai(query, indexes, no_excel, date_match, 
         model=os.environ["AZURE_LLM_MODEL_DEPLOYMENT_NAME"],  # model = "deployment_name".
         messages=[
             {"role": "system",
-             "content": "You are a representative of ISPT, a property fund company. \nAlways answer the query using the provided context information, and not prior knowledge.\n Always answer in first person."},
+             "content": "You are a representative of ISPT, a property fund company. \nyou must always answer the query using the provided context information only, and not prior knowledge.\n Always answer in first person."},
             {"role": "system",
              "content": "Always cite the sources using the doc number inside square brackets. For example [doc1], [doc2]"},
+            {"role": "system",
+             "content": "If the answer is not in the given context, answer that you do not know."},
+
             {"role": "assistant", "content": "What is the context?"},
             {"role": "user", "content": f"The context is {context} "},
             {"role": "assistant", "content": "What is your query?"},
             {"role": "user", "content": query},
+
         ],
         stream=True,
         top_p=AZURE_OPENAI_TOP_P,
@@ -360,6 +369,13 @@ async def get_answer_directly_from_openai(query, indexes, no_excel, date_match, 
     )
 
     citationsChunk = get_citations(nodes)
+    # responseText = ""
+    # for k in response:
+    #     try:
+    #         responseText += k.choices[0].delta.content
+    #     except:
+    #         pass
+    # print(responseText)
     return response, citationsChunk
 
 
@@ -375,6 +391,7 @@ def get_citations(nodes):
             'chunk_id': '0',
             'metadata': k.metadata
         }
+        print("CITATION:", k.id_, k.metadata['filename'])
         citation_choices.append(x)
     import json
     context = {
@@ -470,5 +487,5 @@ def get_final_question_based_on_history(history, latest_message):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(get_answer_directly_from_openai("summarize the market commentary from the 8 lakeside drive valuation report  ",
-                                                ["ispt-air-dev-fm-llamaindex-5"], True, False, 20))
+    asyncio.run(get_answer_directly_from_openai("How many dedicated ESG professionals are employed at a firm-wide level?  ",
+                                                ["ispt-air-dev-esg-llamaindex-5"], False, False, 20))
