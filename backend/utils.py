@@ -168,7 +168,7 @@ def generate_sas_url(messageObj):
             print(citation['url'])
             # TODO: fix this properly after user testing
             if "/HTH/" in citation['url']:
-                _container_name = "ispt-air-dev-3-container"
+                _container_name = "ispt-air-dev-5-container"
             blob_name=parse.unquote(citation['url'].split(f'core.windows.net/{_container_name}/')[1])
             print(f'BLOB NAME IS {blob_name}')
             sas_token = generate_blob_sas(account_name=STORAGE_ACCOUNT_NAME,
