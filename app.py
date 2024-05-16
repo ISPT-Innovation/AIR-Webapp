@@ -362,7 +362,9 @@ def get_allowed_indexes_based_on_user_token():
 
     return []
 
+
 def get_configured_data_source():
+    logging.info("Getting configured Data source")
     data_source = {}
     search_index, semantic_search_config = AZURE_SEARCH_INDEX, AZURE_SEARCH_SEMANTIC_SEARCH_CONFIG  # default
     try:
@@ -595,7 +597,7 @@ def prepare_model_args(request_body):
                 "role": message["role"],
                 "content": message["content"]
             })
-    logging.info(f"CHAT QUERY :{request_messages}")
+    # logging.info(f"CHAT QUERY :{request_messages}")
 
     model_args = {
         "messages": messages,
@@ -605,7 +607,7 @@ def prepare_model_args(request_body):
         "stop": parse_multi_columns(AZURE_OPENAI_STOP_SEQUENCE) if AZURE_OPENAI_STOP_SEQUENCE else None,
         "stream": SHOULD_STREAM,
         "model": AZURE_OPENAI_MODEL,
-        "seed": SEED
+        "seed": int(SEED)
     }
 
     if SHOULD_USE_DATA:
@@ -638,13 +640,35 @@ def prepare_model_args(request_body):
 
 async def send_chat_request(request):
     model_args = prepare_model_args(request)
-
+    logging.info(f"Model Args: {model_args}")
     try:
         azure_openai_client = init_openai_client()
         response = await azure_openai_client.chat.completions.create(**model_args)
 
     except Exception as e:
         logging.exception("Exception in send_chat_request")
+        if 'ispt-air-dev-dummy-llamaindex-5' in str(e):
+            logging.info("User has no indexes or has to relogin.")
+
+            async def generate():
+                c = Choice(delta=ChoiceDelta(
+                    content="You do not have access to indexes. Please contact the Admin. If you should have access, try relogging in as your token may have expired.",
+                    function_call=None,
+                    role='assistant',
+                    tool_calls=None),
+                           finish_reason=None,
+                           index=0,
+                           logprobs=None
+                           )
+                completionChunk = ChatCompletionChunk(id='chatcmpl-8ZB9m2Ubv8FJs3CIb84WvYwqZCHST',
+                                                      choices=[c],
+                                                      created=1703395058,
+                                                      model='gpt-3.5-turbo-0613',
+                                                      object='chat.completion.chunk',
+                                                      system_fingerprint=None)
+                yield completionChunk
+
+            return generate()
         raise e
 
     return response
@@ -669,19 +693,18 @@ async def stream_chat_request(request_body):
     return generate()
 
 
-
 async def stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match, top_k):
     indexes = get_allowed_indexes_based_on_user_token()
-    #indexes = ["ispt-air-dev-hth-llamaindex-3"]
+    # indexes = ["ispt-air-dev-hth-llamaindex-6"]
     history_metadata = request_body.get("history_metadata", {})
     if indexes:
         indexes = [indexes[0]]
-        logging.info("INDEXES:", indexes)
+        logging.info(f"INDEXES:{indexes}")
         query = request_body['messages'][-1]['content']
         final_query = get_final_question_based_on_history(request_body['messages'][0:-1], query)
 
-        response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes, no_excel, date_match, top_k)
-
+        response, citationsChunk = await get_answer_directly_from_openai(final_query, indexes, no_excel, date_match,
+                                                                         top_k)
 
         async def generate():
             yield format_stream_response(citationsChunk, history_metadata)
@@ -690,10 +713,11 @@ async def stream_chat_request_using_custom_llamaindex_based_vector_engine(reques
     else:
 
         async def generate():
-            c = Choice(delta=ChoiceDelta(content="You don't have access to any indexes. Please contact the Admin.",
-                                         function_call=None,
-                                         role='assistant',
-                                         tool_calls=None),
+            c = Choice(delta=ChoiceDelta(
+                content="You do not have access to indexes. Please contact the Admin. If you should have access, try relogging in as your token may have expired.",
+                function_call=None,
+                role='assistant',
+                tool_calls=None),
                        finish_reason=None,
                        index=0,
                        logprobs=None
@@ -710,12 +734,28 @@ async def stream_chat_request_using_custom_llamaindex_based_vector_engine(reques
 
 
 async def route_chat_request(request_body):
+    indexes = get_allowed_indexes_based_on_user_token()
+    # indexes = ["ispt-air-dev-hth-llamaindex-6"]
+    is_hth = False
+    for index in indexes:
+        if "hth" in index.lower():
+            is_hth = True
+            break
+    # check if no strategy was specified
     query = request_body['messages'][-1]['content']
+
+    if "[STRATEGY" not in query:
+        if is_hth:
+            query = query + " [STRATEGY1]"
+
     if "[STRATEGY1]" in query:
-        #print("GOING WITH STRATEGY1")
+        logging.info(f"Applying STRATEGY1 to {query}")
         request_body['messages'][-1]['content'] = request_body['messages'][-1]['content'].replace("[STRATEGY1]", "")
-        #print(request_body['messages'][-1]['content'])
+        # print(request_body['messages'][-1]['content'])
         return await stream_chat_request(request_body)
+
+    logging.info(f"Applying STRATEGY0 to {query}")
+    request_body['messages'][-1]['content'] = request_body['messages'][-1]['content'].replace("[STRATEGY0]", "")
     no_excel = False
     date_match = False
     top_k = 20
@@ -724,7 +764,8 @@ async def route_chat_request(request_body):
     if "[DATE_MATCH]" in query:
         date_match = True
         top_k = 30
-    return await stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match, top_k)
+    return await stream_chat_request_using_custom_llamaindex_based_vector_engine(request_body, no_excel, date_match,
+                                                                                 top_k)
 
 
 async def conversation_internal(request_body):
@@ -1144,6 +1185,3 @@ async def generate_title(conversation_messages):
 
 
 app = create_app()
-print("testing testing")
-
-

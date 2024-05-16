@@ -17,6 +17,7 @@ from llama_index.vector_stores.azureaisearch import IndexManagement, AzureAISear
 from llama_index_client import MessageRole, ChatMessage
 from openai.types.chat.chat_completion_chunk import ChoiceDelta, Choice, ChatCompletionChunk
 from llama_index.core.chat_engine import CondenseQuestionChatEngine
+import logging
 
 load_dotenv()
 
@@ -50,108 +51,6 @@ Settings.llm = llm
 
 
 class CustomVectorIndexRetriever(BaseRetriever):
-
-    def __init__(
-            self,
-            index_name,
-            llm,
-            filter_threshold=0.015,
-            reranker=False,
-            reranker_top_n=5,
-            vector_top_k=20
-    ) -> None:
-        """Init params."""
-
-        self.search_index = self.get_search_index(index_name)
-        self.filter_threshold = filter_threshold
-        self.reranker = reranker
-        self.llm = llm
-        self.vector_top_k = vector_top_k
-        self.filter_threshold = filter_threshold
-        self.reranker_top_n = reranker_top_n
-
-        super().__init__()
-
-    def get_vector_store(self, search_index_name):
-        credential = AzureKeyCredential(search_service_api_key)
-        index_client = SearchIndexClient(
-            endpoint=search_service_endpoint,
-            credential=credential,
-        )
-
-        metadata_fields = {
-            "filename": "filename",
-            "level": ("level", MetadataIndexFieldType.INT32),
-            "parent_id": ("parent_id", MetadataIndexFieldType.STRING),
-            "url": ("url", MetadataIndexFieldType.STRING)
-        }
-        vector_store = AzureAISearchVectorStore(
-            search_or_index_client=index_client,
-            filterable_metadata_field_keys=metadata_fields,
-            index_name=search_index_name,
-            index_management=IndexManagement.CREATE_IF_NOT_EXISTS,
-            id_field_key="id",
-            chunk_field_key="chunk",
-            embedding_field_key="embedding",
-            embedding_dimensionality=1536,
-            metadata_string_field_key="metadata",
-            doc_id_field_key="doc_id",
-            language_analyzer="en.lucene",
-            vector_algorithm_type="exhaustiveKnn",
-        )
-        return vector_store
-
-    def get_search_index(self, SEARCH_INDEX_NAME):
-        vector_store = self.get_vector_store(SEARCH_INDEX_NAME)
-        storage_context = StorageContext.from_defaults(vector_store=vector_store)
-        search_index = VectorStoreIndex.from_documents(
-            [], storage_context=storage_context
-        )
-        return search_index
-
-    def _retrieve(self, query_bundle: QueryBundle) -> List[NodeWithScore]:
-        """Retrieve nodes given query."""
-
-        retriever = VectorIndexRetriever(
-            index=self.search_index,
-            similarity_top_k=self.vector_top_k,
-            vector_store_query_mode=VectorStoreQueryMode.HYBRID
-        )
-
-        retrieved_nodes = retriever.retrieve(query_bundle)
-
-        retrieved_nodes = [node for node in retrieved_nodes if node.score > self.filter_threshold]
-        retrieved_nodes = [node for node in retrieved_nodes if ".xls" not in node.metadata['filename']]
-
-        print("NODES:",retrieved_nodes)
-
-        for node in retrieved_nodes:
-            print(">>", node.metadata['filename'], node.score)
-
-        if self.reranker:
-            reranker = RankGPTRerank(
-                llm=self.llm,
-                top_n=self.reranker_top_n,
-                verbose=True,
-            )
-            retrieved_nodes = reranker.postprocess_nodes(
-                retrieved_nodes, query_bundle
-            )
-
-        context_nodes = []
-        current_size = 0
-        for node in retrieved_nodes:
-            if current_size + node.metadata['size'] > 5000:
-                break
-            context_nodes.append(node)
-            current_size += node.metadata['size']
-
-        # print(len(context_nodes), current_size)
-
-        return retrieved_nodes
-
-
-class CustomVectorIndexRetriever2(BaseRetriever):
 
     def __init__(
             self,
@@ -230,10 +129,10 @@ class CustomVectorIndexRetriever2(BaseRetriever):
         if self.no_excel:
             retrieved_nodes = [node for node in retrieved_nodes if ".xls" not in node.metadata['filename']]
 
-        print("NODES:", retrieved_nodes)
-
-        for node in retrieved_nodes:
-            print(">>", node.metadata['filename'], node.score)
+        # print("NODES:", retrieved_nodes)
+        #
+        # for node in retrieved_nodes:
+        #     print(">>", node.metadata['filename'], node.score)
 
         retrieved_nodes = sorted(retrieved_nodes, key=lambda x: x.score, reverse=True)
 
@@ -252,13 +151,13 @@ class CustomVectorIndexRetriever2(BaseRetriever):
         for node in retrieved_nodes:
             if self.date_context_matching_enabled:
                 if is_node_relevant_temporally(query_bundle.query_str, node):
-                    print(f"Node {node.metadata['filename']} is  relevant")
+                    logging.info(f"Node {node.metadata['filename']} is  relevant")
                     if current_size + node.metadata['size'] > 5000:
                         break
                     context_nodes.append(node)
                     current_size += node.metadata['size']
                 else:
-                    print(f"Node {node.metadata['filename']} is not relevant")
+                    logging.info(f"Node {node.metadata['filename']} is not relevant")
 
             else:
                 if current_size + node.metadata['size'] > 5000:
@@ -266,14 +165,13 @@ class CustomVectorIndexRetriever2(BaseRetriever):
                 context_nodes.append(node)
                 current_size += node.metadata['size']
 
-        print("FINAL SIZE:", len(context_nodes), current_size)
+        logging.info(f"FINAL SIZE: {len(context_nodes)} {current_size}")
 
         return context_nodes
 
 
 def is_node_relevant_temporally(query, node):
-    print("****" * 10)
-    print("Checking relevancy of dates.")
+    logging.info("Checking relevancy of dates.")
     filename = " ".join(node.metadata['filename'].split("."))
     custom_prompt = f"""\
        You will be given a context and a query,
@@ -293,7 +191,6 @@ def is_node_relevant_temporally(query, node):
        <query>
        {query}
        """
-    print(custom_prompt)
 
     import openai
     llm = openai.AzureOpenAI(
@@ -308,10 +205,9 @@ def is_node_relevant_temporally(query, node):
             {"role": "user", "content": f"{custom_prompt} "},
         ],
     )
-
+    logging.info(f"DATE RELAVANCY PROMPT: {custom_prompt}")
     response = response.choices[0].message.content
-    print(f"FINAL QUERY : {response}")
-    print("---" * 100)
+    logging.info(f"FINAL RESPONSE : {response}")
     return response.lower().startswith("true") and ("FALSE" not in response)
 
 
@@ -333,8 +229,8 @@ def get_chat_engine(custom_query_engine, custom_chat_history):
 
 
 async def get_answer_directly_from_openai(query, indexes, no_excel, date_match, top_k):
-    retriever = CustomVectorIndexRetriever2(indexes, Settings.llm, vector_top_k=top_k,
-                                            date_context_matching_enabled=date_match, no_excel=no_excel)
+    retriever = CustomVectorIndexRetriever(indexes, Settings.llm, vector_top_k=top_k,
+                                           date_context_matching_enabled=date_match, no_excel=no_excel)
     nodes = retriever.retrieve(query)
     context = "\n\n".join(
         [f"doc{index + 1}:" + '\n' + node.get_content(metadata_mode=MetadataMode.EMBED) for index, node in
@@ -390,7 +286,7 @@ def get_citations(nodes):
             'chunk_id': '0',
             'metadata': k.metadata
         }
-        print("CITATION:", k.id_, k.metadata['filename'])
+        logging.info(f"CITATION: {k.id_}, {k.metadata['filename']}")
         citation_choices.append(x)
     import json
     context = {
@@ -486,5 +382,6 @@ def get_final_question_based_on_history(history, latest_message):
 if __name__ == "__main__":
     import asyncio
 
-    asyncio.run(get_answer_directly_from_openai("How many dedicated ESG professionals are employed at a firm-wide level?  ",
-                                                ["ispt-air-dev-esg-llamaindex-5"], False, False, 20))
+    asyncio.run(
+        get_answer_directly_from_openai("How many dedicated ESG professionals are employed at a firm-wide level?  ",
+                                        ["ispt-air-dev-esg-llamaindex-5"], False, False, 20))

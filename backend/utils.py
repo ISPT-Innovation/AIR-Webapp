@@ -18,11 +18,13 @@ if DEBUG.lower() == "true":
 
 AZURE_SEARCH_PERMITTED_GROUPS_COLUMN = os.environ.get("AZURE_SEARCH_PERMITTED_GROUPS_COLUMN")
 
+
 class JSONEncoder(json.JSONEncoder):
     def default(self, o):
         if dataclasses.is_dataclass(o):
             return dataclasses.asdict(o)
         return super().default(o)
+
 
 async def format_as_ndjson(r):
     try:
@@ -31,6 +33,7 @@ async def format_as_ndjson(r):
     except Exception as error:
         logging.exception("Exception while generating response stream: %s", error)
         yield json.dumps({"error": str(error)})
+
 
 def parse_multi_columns(columns: str) -> list:
     if "|" in columns:
@@ -45,21 +48,21 @@ def fetchUserGroups(userToken, nextLink=None):
         endpoint = nextLink
     else:
         endpoint = "https://graph.microsoft.com/v1.0/me/transitiveMemberOf?$select=id"
-    
+
     headers = {
         'Authorization': "bearer " + userToken
     }
-    try :
+    try:
         r = requests.get(endpoint, headers=headers)
         if r.status_code != 200:
             logging.error(f"Error fetching user groups: {r.status_code} {r.text}")
             return []
-        
+
         r = r.json()
         if "@odata.nextLink" in r:
             nextLinkData = fetchUserGroups(userToken, r["@odata.nextLink"])
             r['value'].extend(nextLinkData)
-        
+
         return r['value']
     except Exception as e:
         logging.error(f"Exception in fetchUserGroups: {e}")
@@ -76,6 +79,7 @@ def generateFilterString(userToken):
 
     group_ids = ", ".join([obj['id'] for obj in userGroups])
     return f"{AZURE_SEARCH_PERMITTED_GROUPS_COLUMN}/any(g:search.in(g, '{group_ids}'))"
+
 
 def format_non_streaming_response(chatCompletion, history_metadata, message_uuid=None):
     response_obj = {
@@ -111,8 +115,9 @@ def format_non_streaming_response(chatCompletion, history_metadata, message_uuid
                 "content": message.content,
             })
             return response_obj
-    
+
     return {}
+
 
 def format_stream_response(chatCompletionChunk, history_metadata, message_uuid=None):
     response_obj = {
@@ -133,7 +138,7 @@ def format_stream_response(chatCompletionChunk, history_metadata, message_uuid=N
                 for m in delta.context["messages"]:
                     if m["role"] == "tool":
                         # Generate SAS token which will be valid for 1 hour
-                        m['content']=generate_sas_url(m["content"])
+                        m['content'] = generate_sas_url(m["content"])
                         messageObj = {
                             "role": "tool",
                             "content": m["content"]
@@ -155,28 +160,49 @@ def format_stream_response(chatCompletionChunk, history_metadata, message_uuid=N
                     }
                     response_obj["choices"][0]["messages"].append(messageObj)
                     return response_obj
-    
+
     return {}
 
+
+def get_container_based_on_citation_url(citation_url):
+    bu_container_mapping = json.loads(os.getenv('BU_CONTAINER_MAPPING', '{}'))
+    logging.info(bu_container_mapping)
+    try:
+        if "/hth/" in citation_url.lower():
+            return bu_container_mapping["HTH"]
+        elif "/ir/" in citation_url.lower():
+            return bu_container_mapping["IR"]
+        elif "/esg/" in citation_url.lower():
+            return bu_container_mapping["ESG"]
+        elif "/fm/" in citation_url.lower():
+            return bu_container_mapping["FM"]
+    except Exception as e:
+        logging.exception(f"Please check your environment variable BU_CONTAINER_MAPPING - {e}")
+    return None
+
+
 def generate_sas_url(messageObj):
-    messageObj=json.loads(messageObj)
-    citations=messageObj['citations']
+    messageObj = json.loads(messageObj)
+    citations = messageObj['citations']
+
 
     _container_name = CONTAINER_NAME
     for citation in citations:
         if citation['url']:
-            print(citation['url'])
+            # print(citation['url'])
             # TODO: fix this properly after user testing
-            if "/HTH/" in citation['url']:
-                _container_name = "ispt-air-dev-5-container"
-            blob_name=parse.unquote(citation['url'].split(f'core.windows.net/{_container_name}/')[1])
+            # if "/HTH/" in citation['url']:
+            #    _container_name = "ispt-air-dev-5-container"
+            _container_name = get_container_based_on_citation_url(citation['url'])
+            print(">>>", get_container_based_on_citation_url(citation['url']))
+            blob_name = parse.unquote(citation['url'].split(f'core.windows.net/{_container_name}/')[1])
             print(f'BLOB NAME IS {blob_name}')
             sas_token = generate_blob_sas(account_name=STORAGE_ACCOUNT_NAME,
-                                        container_name=_container_name,
-                                        blob_name=blob_name,
-                                        account_key=STORAGE_ACCOUNT_KEY,
-                                        permission=BlobSasPermissions(read=True),
-                                        expiry=datetime.utcnow() + timedelta(hours=1))  # Token valid for 1 hour
-            citation['url']=citation['url']+f'?{sas_token}'
+                                          container_name=_container_name,
+                                          blob_name=blob_name,
+                                          account_key=STORAGE_ACCOUNT_KEY,
+                                          permission=BlobSasPermissions(read=True),
+                                          expiry=datetime.utcnow() + timedelta(hours=1))  # Token valid for 1 hour
+            citation['url'] = citation['url'] + f'?{sas_token}'
 
     return json.dumps(messageObj)
